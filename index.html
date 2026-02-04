@@ -184,7 +184,11 @@ async function updateDashboard() {
     const totalToday = todayPayments.reduce((sum, p) => sum + Number(p.AmountPaid), 0);
     document.getElementById("todayCollection").innerText = `₱${totalToday}`;
 }
-
+    async function updateTotalLoans(){
+        const loans = await fetch(`${API_URL}?action=loans`).then(res => res.json());
+        document.getElementById("totalLoans").innerText = loans.length;
+    }
+    updateTotalLoans();
 // Run dashboard update
 updateDashboard();
 </script>
