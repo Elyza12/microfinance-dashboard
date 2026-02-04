@@ -155,7 +155,7 @@ Recent Loans
 </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
+     const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
 async function fetchData(action) {
     const response = await fetch(`${API_URL}?action=${action}`);
@@ -201,6 +201,37 @@ async function updateDashboard() {
         document.getElementById("todayCollection").innerText = `₱${totalToday}`;
     }
 }
+        async function updateRecentLoans() {
+    const loans = await fetchData("loans");
+    const borrowers = await fetchData("borrowers");
+
+    // Clear table first
+    const table = document.getElementById("loanTable");
+    table.innerHTML = "";
+
+    // Sort loans by ReleaseDate descending
+    loans.sort((a, b) => new Date(b.ReleaseDate) - new Date(a.ReleaseDate));
+
+    // Add rows
+    loans.forEach(loan => {
+        // Find borrower name
+        const borrower = borrowers.find(b => b.BorrowerID === loan.BorrowerID);
+        const borrowerName = borrower ? borrower.FullName : "Unknown";
+
+        const row = `
+            <tr>
+                <td>${borrowerName}</td>
+                <td>₱${loan.Amount}</td>
+                <td>${loan.Status}</td>
+                <td>${loan.ReleaseDate}</td>
+            </tr>
+        `;
+        table.innerHTML += row;
+    });
+}
+
+// Run this function
+updateRecentLoans();
 
 // Run the dashboard update
 updateDashboard();
