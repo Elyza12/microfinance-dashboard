@@ -200,10 +200,7 @@ async function updateDashboard() {
     const overdueLoans = loans.filter(l => l.Status.toLowerCase() === "overdue").length;
     document.getElementById("overdueLoans").innerText = overdueLoans;
 
-    // ----------------------
-    // Today Collection
-    // ----------------------
-    // ----------------------
+// ----------------------
 // Today Collection
 // ----------------------
 const payments = await fetchData("payments");
@@ -211,18 +208,10 @@ const payments = await fetchData("payments");
 if(!payments || payments.length === 0){
     document.getElementById("todayCollection").innerText = "₱0";
 } else {
-    const today = new Date();
+    const todayStr = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
 
-    const todayPayments = payments.filter(p => {
-        // Make sure PaymentDate exists
-        if(!p.PaymentDate) return false;
-        const d = new Date(p.PaymentDate);
-        return d.getDate() === today.getDate() &&
-               (d.getMonth()+1) === (today.getMonth()+1) &&
-               d.getFullYear() === today.getFullYear();
-    });
+    const todayPayments = payments.filter(p => p.PaymentDate === todayStr);
 
-    // Safely sum AmountPaid
     const totalToday = todayPayments.reduce((sum, p) => {
         const amount = parseFloat(p.AmountPaid); // convert to number
         return sum + (isNaN(amount) ? 0 : amount);
@@ -230,6 +219,7 @@ if(!payments || payments.length === 0){
 
     document.getElementById("todayCollection").innerText = `₱${totalToday}`;
 }
+
 
 }
         async function updateRecentLoans() {
