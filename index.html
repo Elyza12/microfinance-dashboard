@@ -155,30 +155,40 @@ Recent Loans
 </div>
 
 <script>
-document.getElementById("totalLoans").innerText = 24;
-document.getElementById("todayCollection").innerText = "₱12,540";
-document.getElementById("activeBorrowers").innerText = 18;
-document.getElementById("overdueLoans").innerText = 3;
+const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec"; // <-- replace with your Apps Script Web App URL
 
-const loans = [
-    { name: "Juan Dela Cruz", amount: 5000, status: "Active", date: "2026-02-01" },
-    { name: "Maria Santos", amount: 8000, status: "Paid", date: "2026-01-20" },
-    { name: "Pedro Reyes", amount: 6000, status: "Overdue", date: "2026-01-15" }
-];
+async function fetchData(action) {
+    const response = await fetch(`${API_URL}?action=${action}`);
+    const data = await response.json();
+    return data;
+}
 
-const table = document.getElementById("loanTable");
+async function updateDashboard() {
+    // Borrowers
+    const borrowers = await fetchData("borrowers");
+    const activeBorrowers = borrowers.filter(b => b.Status === "Active").length;
+    document.getElementById("activeBorrowers").innerText = activeBorrowers;
 
-loans.forEach(loan => {
-    table.innerHTML += `
-        <tr>
-            <td>${loan.name}</td>
-            <td>₱${loan.amount}</td>
-            <td>${loan.status}</td>
-            <td>${loan.date}</td>
-        </tr>
-    `;
-});
+    // Loans
+    const loans = await fetchData("loans");
+    document.getElementById("totalLoans").innerText = loans.length;
+
+    // Overdue Loans
+    const overdueLoans = loans.filter(l => l.Status.toLowerCase() === "overdue").length;
+    document.getElementById("overdueLoans").innerText = overdueLoans;
+
+    // Payments (Today Collection)
+    const payments = await fetchData("payments");
+    const today = new Date().toISOString().split("T")[0];
+    const todayPayments = payments.filter(p => p.PaymentDate === today);
+    const totalToday = todayPayments.reduce((sum, p) => sum + Number(p.AmountPaid), 0);
+    document.getElementById("todayCollection").innerText = `₱${totalToday}`;
+}
+
+// Run dashboard update
+updateDashboard();
 </script>
+
 
 </body>
 </html>
