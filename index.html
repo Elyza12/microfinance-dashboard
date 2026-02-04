@@ -196,6 +196,15 @@ async function updateDashboard() {
         document.getElementById("overdueLoans").innerText = overdue;
     }
     updateOverdueLoans();
+
+    async function updateTodayCollection(){
+        const payment = await fetch(`${API_URL}?action=payments`).then(res => res.json());
+        const today = new Date().toISOString().split("T")[0];
+        const todayPayments = payments.filter(p => p.PaymentDate === today);
+        const totalToday = todayPayments.reduce((sum, p) => + Number(p.AmountPaid), 0);
+        document.getElementById("todayCollection").innerText = `₱${totalToday}`;
+    }
+    updateTodayCollection();
 // Run dashboard update
 updateDashboard();
 
