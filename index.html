@@ -203,20 +203,34 @@ async function updateDashboard() {
     // ----------------------
     // Today Collection
     // ----------------------
-    const payments = await fetchData("payments");
-    if(payments.length === 0){
-        document.getElementById("todayCollection").innerText = "₱0";
-    } else {
-        const today = new Date();
-        const todayPayments = payments.filter(p => {
-            const d = new Date(p.PaymentDate);
-            return d.getDate() === today.getDate() &&
-                   (d.getMonth()+1) === (today.getMonth()+1) &&
-                   d.getFullYear() === today.getFullYear();
-        });
-        const totalToday = todayPayments.reduce((sum, p) => sum + Number(p.AmountPaid), 0);
-        document.getElementById("todayCollection").innerText = `₱${totalToday}`;
-    }
+    // ----------------------
+// Today Collection
+// ----------------------
+const payments = await fetchData("payments");
+
+if(!payments || payments.length === 0){
+    document.getElementById("todayCollection").innerText = "₱0";
+} else {
+    const today = new Date();
+
+    const todayPayments = payments.filter(p => {
+        // Make sure PaymentDate exists
+        if(!p.PaymentDate) return false;
+        const d = new Date(p.PaymentDate);
+        return d.getDate() === today.getDate() &&
+               (d.getMonth()+1) === (today.getMonth()+1) &&
+               d.getFullYear() === today.getFullYear();
+    });
+
+    // Safely sum AmountPaid
+    const totalToday = todayPayments.reduce((sum, p) => {
+        const amount = parseFloat(p.AmountPaid); // convert to number
+        return sum + (isNaN(amount) ? 0 : amount);
+    }, 0);
+
+    document.getElementById("todayCollection").innerText = `₱${totalToday}`;
+}
+
 }
         async function updateRecentLoans() {
     const loans = await fetchData("loans");
