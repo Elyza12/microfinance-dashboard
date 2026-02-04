@@ -154,8 +154,7 @@ Recent Loans
 </div>
 </div>
 
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec"; // <-- replace with your Apps Script Web App URL
+const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
 async function fetchData(action) {
     const response = await fetch(`${API_URL}?action=${action}`);
@@ -164,52 +163,47 @@ async function fetchData(action) {
 }
 
 async function updateDashboard() {
-    // Borrowers
+    // ----------------------
+    // Active Borrowers
+    // ----------------------
     const borrowers = await fetchData("borrowers");
     const activeBorrowers = borrowers.filter(b => b.Status === "Active").length;
     document.getElementById("activeBorrowers").innerText = activeBorrowers;
 
-    // Loans
+    // ----------------------
+    // Total Loans
+    // ----------------------
     const loans = await fetchData("loans");
     document.getElementById("totalLoans").innerText = loans.length;
 
+    // ----------------------
     // Overdue Loans
+    // ----------------------
     const overdueLoans = loans.filter(l => l.Status.toLowerCase() === "overdue").length;
     document.getElementById("overdueLoans").innerText = overdueLoans;
 
-    // Payments (Today Collection)
+    // ----------------------
+    // Today Collection
+    // ----------------------
     const payments = await fetchData("payments");
-    const today = new Date().toISOString().split("T")[0];
-    const todayPayments = payments.filter(p => p.PaymentDate === today);
-    const totalToday = todayPayments.reduce((sum, p) => sum + Number(p.AmountPaid), 0);
-    document.getElementById("todayCollection").innerText = `₱${totalToday}`;
-}
-    async function updateTotalLoans(){
-        const loans = await fetch(`${API_URL}?action=loans`).then(res => res.json());
-        document.getElementById("totalLoans").innerText = loans.length;
-    }
-    updateTotalLoans();
-
-    async function updateOverdueLoans(){
-        const loans = await fetch(`${API_URL}?action=loans`).then(res => res.json());
-        const overdue = loans.filter((l => l.Status.toLowerCase() === "overdue").length;
-        document.getElementById("overdueLoans").innerText = overdue;
-    }
-    updateOverdueLoans();
-
-    async function updateTodayCollection(){
-        const payment = await fetch(`${API_URL}?action=payments`).then(res => res.json());
-        const today = new Date().toISOString().split("T")[0];
-        const todayPayments = payments.filter(p => p.PaymentDate === today);
-        const totalToday = todayPayments.reduce((sum, p) => + Number(p.AmountPaid), 0);
+    if(payments.length === 0){
+        document.getElementById("todayCollection").innerText = "₱0";
+    } else {
+        const today = new Date();
+        const todayPayments = payments.filter(p => {
+            const d = new Date(p.PaymentDate);
+            return d.getDate() === today.getDate() &&
+                   (d.getMonth()+1) === (today.getMonth()+1) &&
+                   d.getFullYear() === today.getFullYear();
+        });
+        const totalToday = todayPayments.reduce((sum, p) => sum + Number(p.AmountPaid), 0);
         document.getElementById("todayCollection").innerText = `₱${totalToday}`;
     }
-    updateTodayCollection();
-// Run dashboard update
+}
+
+// Run the dashboard update
 updateDashboard();
 
-    
-</script>
 
 </body>
 </html>
