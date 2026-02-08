@@ -89,27 +89,20 @@ async function loadBorrowersTable() {
     table.innerHTML = "";
 
     borrowers.forEach(borrower => {
-        const row = `
-            <tr>
-                <td>${borrower.BorrowerID}</td>
-                <td>${borrower.FullName}</td>
-                <td>${borrower.Status}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary editBtn"
-                        data-id="${borrower.BorrowerID}"
-                        data-name="${borrower.FullName}"
-                        data-status="${borrower.Status}">
-                        Edit
-                    </button>
-                    <button class="btn btn-sm btn-danger deleteBtn"
-                        data-id="${borrower.BorrowerID}">
-                        Delete
-                    </button>
-                </td>
-            </tr>
-        `;
-        table.innerHTML += row;
-    });
+    const status = borrower.Status || borrower.STATUS || borrower.status || "Unknown";
+    const row = `
+        <tr>
+            <td>${borrower.BorrowerID}</td>
+            <td>${borrower.FullName}</td>
+            <td>${status}</td>
+            <td>
+                ...
+            </td>
+        </tr>
+    `;
+    table.innerHTML += row;
+});
+
 }
 
 // Edit/ Delete click events
