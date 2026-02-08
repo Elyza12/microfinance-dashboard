@@ -180,6 +180,38 @@ document.getElementById("searchBorrower").addEventListener("input", function() {
 
 // Run table on page load
 loadBorrowersTable();
+  // Get the modal element
+const borrowerModalEl = document.getElementById('borrowerModal');
+const borrowerModal = new bootstrap.Modal(borrowerModalEl);
+
+// Open modal when clicking "Add Borrower"
+document.getElementById("addBorrowerBtn").addEventListener("click", function() {
+    // Reset form
+    document.getElementById("borrowerForm").reset();
+    document.getElementById("borrowerId").value = "";
+    document.getElementById("modalTitle").innerText = "Add Borrower";
+
+    borrowerModal.show();
+});
+document.getElementById("borrowerForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const id = document.getElementById("borrowerId").value; // will be empty for Add
+    const name = document.getElementById("borrowerName").value.trim();
+    const status = document.getElementById("borrowerStatus").value;
+
+    if(!name) return alert("Please enter the borrower's name");
+
+    try {
+        // Call the Apps Script API
+        await fetch(`${API_URL}?action=addBorrower&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
+        borrowerModal.hide();
+        loadBorrowersTable(); // Refresh table
+    } catch(error) {
+        console.error("Error adding borrower:", error);
+    }
+});
+
 </script>
 
 
