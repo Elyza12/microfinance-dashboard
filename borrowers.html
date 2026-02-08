@@ -1,221 +1,230 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Borrowers</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head>
-<body>
-
-<h1 class="text-center mt-5">Borrowers Page</h1>
-<p class="text-center">List of all borrowers.</p>
-
-<div class="container mt-4">
-  <div class="mb-3 d-flex justify-content-between">
-    <input type="text" id="searchBorrower" class="form-control w-50" placeholder="Search borrower by name or ID">
-    <button class="btn btn-success" id="addBorrowerBtn">Add Borrower</button>
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Borrowers</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </head>
+  <body>
+  
+  <h1 class="text-center mt-5">Borrowers Page</h1>
+  <p class="text-center">List of all borrowers.</p>
+  
+  <div class="container mt-4">
+    <div class="mb-3 d-flex justify-content-between">
+      <input type="text" id="searchBorrower" class="form-control w-50" placeholder="Search borrower by name or ID">
+      <button class="btn btn-success" id="addBorrowerBtn">Add Borrower</button>
+    </div>
+  
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Borrower ID</th>
+          <th>Full Name</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="borrowersTable">
+        <!-- Borrowers will be loaded here dynamically -->
+      </tbody>
+    </table>
   </div>
-
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Borrower ID</th>
-        <th>Full Name</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="borrowersTable">
-      <!-- Borrowers will be loaded here dynamically -->
-    </tbody>
-  </table>
-</div>
-
-<!-- Borrower Modal -->
-<div class="modal fade" id="borrowerModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalTitle">Add Borrower</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="borrowerForm">
-          <input type="hidden" id="borrowerId">
-          <div class="mb-3">
-            <label class="form-label">Full Name</label>
-            <input type="text" id="borrowerName" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Status</label>
-            <select id="borrowerStatus" class="form-control">
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Save</button>
-        </form>
+  
+  <!-- Borrower Modal -->
+  <div class="modal fade" id="borrowerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add Borrower</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="borrowerForm">
+            <input type="hidden" id="borrowerId">
+            <div class="mb-3">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="borrowerName" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <select id="borrowerStatus" class="form-control">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Save</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
-</div>
-
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
-
-// Redirect to login if not logged in
-if(localStorage.getItem("loggedIn") !== "true"){
-    window.location.href = "login.html";
-}
-
-// Fetch borrowers from API
-async function fetchBorrowers() {
-    try {
-        const response = await fetch(`${API_URL}?action=borrowers`);
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error("Error fetching borrowers:", error);
-        return [];
-    }
-}
-
-// Load borrowers table
-async function loadBorrowersTable() {
-    const borrowers = await fetchBorrowers();
-    const table = document.getElementById("borrowersTable");
-    table.innerHTML = "";
-
-    borrowers.forEach(borrower => {
-    const status = borrower.Status || borrower.STATUS || borrower.status || "Unknown";
-    const row = `
-        <tr>
-            <td>${borrower.BorrowerID}</td>
-            <td>${borrower.FullName}</td>
-            <td>${status}</td>
-            <td>
-                ...
-            </td>
-        </tr>
-    `;
-    table.innerHTML += row;
-});
-
-}
-
-// Edit/ Delete click events
-document.addEventListener("click", async function(e) {
-
-    // DELETE
-    if(e.target.classList.contains("deleteBtn")) {
-        const id = e.target.getAttribute("data-id");
-        const confirmed = confirm("Are you sure you want to delete this borrower?");
-        if(confirmed) {
-            await deleteBorrower(id);
-        }
-        return;
-    }
-
-    // EDIT
-    if(e.target.classList.contains("editBtn")) {
-    const id = e.target.getAttribute("data-id");
-    const name = e.target.getAttribute("data-name");
-    const status = e.target.getAttribute("data-status");
-
-    // Fill the modal form
-    document.getElementById("borrowerId").value = id;
-    document.getElementById("borrowerName").value = name;
-    document.getElementById("borrowerStatus").value = status;
-    document.getElementById("modalTitle").innerText = "Edit Borrower";
-
-    // Show the modal
-    borrowerModal.show();
-}
-
-});
-
-// Update borrower function
-async function updateBorrower(id, name, status) {
-    try {
-        await fetch(`${API_URL}?action=updateBorrower&id=${id}&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
-        await loadBorrowersTable(); // Refresh table after update
-    } catch(error) {
-        console.error("Error updating borrower:", error);
-    }
-}
-
-// Delete borrower function
-async function deleteBorrower(id) {
-    try {
-        await fetch(`${API_URL}?action=deleteBorrower&id=${id}`);
-        await loadBorrowersTable(); // Refresh table after delete
-    } catch(error) {
-        console.error("Error deleting borrower:", error);
-    }
-}
-
-// SEARCH functionality
-document.getElementById("searchBorrower").addEventListener("input", function() {
-    const searchTerm = this.value.toLowerCase();
-    const rows = document.querySelectorAll("#borrowersTable tr");
-
-    rows.forEach(row => {
-        const id = row.cells[0].innerText.toLowerCase();
-        const name = row.cells[1].innerText.toLowerCase();
-        if(id.includes(searchTerm) || name.includes(searchTerm)) {
-            row.style.display = "";
-        } else {
-            row.style.display = "none";
-        }
-    });
-});
-
-// Run table on page load
-loadBorrowersTable();
-  // Get the modal element
-const borrowerModalEl = document.getElementById('borrowerModal');
-const borrowerModal = new bootstrap.Modal(borrowerModalEl);
-
-// Open modal when clicking "Add Borrower"
-document.getElementById("addBorrowerBtn").addEventListener("click", function() {
-    // Reset form
-    document.getElementById("borrowerForm").reset();
-    document.getElementById("borrowerId").value = "";
-    document.getElementById("modalTitle").innerText = "Add Borrower";
-
-    borrowerModal.show();
-});
-document.getElementById("borrowerForm").addEventListener("submit", async function(e){
-    e.preventDefault();
-
-    const id = document.getElementById("borrowerId").value; // empty = Add, has value = Edit
-    const name = document.getElementById("borrowerName").value.trim();
-    const status = document.getElementById("borrowerStatus").value;
-
-    if(!name) return alert("Please enter the borrower's name");
-
-    try {
-        if(id) {
-            // EDIT
-            await fetch(`${API_URL}?action=updateBorrower&id=${id}&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
-        } else {
-            // ADD
-            await fetch(`${API_URL}?action=addBorrower&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
-        }
-
-        borrowerModal.hide();
-        loadBorrowersTable(); // Refresh table
-    } catch(error) {
-        console.error("Error saving borrower:", error);
-    }
-});
-
-
-</script>
-
-
-
-</body>
-</html>
+  
+  <script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
+  
+  // Redirect to login if not logged in
+  if(localStorage.getItem("loggedIn") !== "true"){
+      window.location.href = "login.html";
+  }
+  
+  // Fetch borrowers from API
+  async function fetchBorrowers() {
+      try {
+          const response = await fetch(`${API_URL}?action=borrowers`);
+          const data = await response.json();
+          return data;
+      } catch (error) {
+          console.error("Error fetching borrowers:", error);
+          return [];
+      }
+  }
+  
+  // Load borrowers table
+  async function loadBorrowersTable() {
+      const borrowers = await fetchBorrowers();
+      const table = document.getElementById("borrowersTable");
+      table.innerHTML = "";
+  
+      borrowers.forEach(borrower => {
+      const status = borrower.Status || borrower.STATUS || borrower.status || "Unknown";
+      const row = `
+    <tr>
+        <td>${borrower.BorrowerID}</td>
+        <td>${borrower.FullName}</td>
+        <td>${status}</td>
+        <td>
+            <button class="btn btn-sm btn-primary editBtn"
+                data-id="${borrower.BorrowerID}"
+                data-name="${borrower.FullName}"
+                data-status="${status}">
+                Edit
+            </button>
+            <button class="btn btn-sm btn-danger deleteBtn"
+                data-id="${borrower.BorrowerID}">
+                Delete
+            </button>
+        </td>
+    </tr>
+`;
+      table.innerHTML += row;
+  });
+  
+  }
+  
+  // Edit/ Delete click events
+  document.addEventListener("click", async function(e) {
+  
+      // DELETE
+      if(e.target.classList.contains("deleteBtn")) {
+          const id = e.target.getAttribute("data-id");
+          const confirmed = confirm("Are you sure you want to delete this borrower?");
+          if(confirmed) {
+              await deleteBorrower(id);
+          }
+          return;
+      }
+  
+      // EDIT
+      if(e.target.classList.contains("editBtn")) {
+      const id = e.target.getAttribute("data-id");
+      const name = e.target.getAttribute("data-name");
+      const status = e.target.getAttribute("data-status");
+  
+      // Fill the modal form
+      document.getElementById("borrowerId").value = id;
+      document.getElementById("borrowerName").value = name;
+      document.getElementById("borrowerStatus").value = status;
+      document.getElementById("modalTitle").innerText = "Edit Borrower";
+  
+      // Show the modal
+      borrowerModal.show();
+  }
+  
+  });
+  
+  // Update borrower function
+  async function updateBorrower(id, name, status) {
+      try {
+          await fetch(`${API_URL}?action=updateBorrower&id=${id}&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
+          await loadBorrowersTable(); // Refresh table after update
+      } catch(error) {
+          console.error("Error updating borrower:", error);
+      }
+  }
+  
+  // Delete borrower function
+  async function deleteBorrower(id) {
+      try {
+          await fetch(`${API_URL}?action=deleteBorrower&id=${id}`);
+          await loadBorrowersTable(); // Refresh table after delete
+      } catch(error) {
+          console.error("Error deleting borrower:", error);
+      }
+  }
+  
+  // SEARCH functionality
+  document.getElementById("searchBorrower").addEventListener("input", function() {
+      const searchTerm = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#borrowersTable tr");
+  
+      rows.forEach(row => {
+          const id = row.cells[0].innerText.toLowerCase();
+          const name = row.cells[1].innerText.toLowerCase();
+          if(id.includes(searchTerm) || name.includes(searchTerm)) {
+              row.style.display = "";
+          } else {
+              row.style.display = "none";
+          }
+      });
+  });
+  
+  // Run table on page load
+  loadBorrowersTable();
+    // Get the modal element
+  const borrowerModalEl = document.getElementById('borrowerModal');
+  const borrowerModal = new bootstrap.Modal(borrowerModalEl);
+  
+  // Open modal when clicking "Add Borrower"
+  document.getElementById("addBorrowerBtn").addEventListener("click", function() {
+      // Reset form
+      document.getElementById("borrowerForm").reset();
+      document.getElementById("borrowerId").value = "";
+      document.getElementById("modalTitle").innerText = "Add Borrower";
+  
+      borrowerModal.show();
+  });
+  document.getElementById("borrowerForm").addEventListener("submit", async function(e){
+      e.preventDefault();
+  
+      const id = document.getElementById("borrowerId").value; // empty = Add, has value = Edit
+      const name = document.getElementById("borrowerName").value.trim();
+      const status = document.getElementById("borrowerStatus").value;
+  
+      if(!name) return alert("Please enter the borrower's name");
+  
+      try {
+          if(id) {
+              // EDIT
+              await fetch(`${API_URL}?action=updateBorrower&id=${id}&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
+          } else {
+              // ADD
+              await fetch(`${API_URL}?action=addBorrower&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
+          }
+  
+          borrowerModal.hide();
+          loadBorrowersTable(); // Refresh table
+      } catch(error) {
+          console.error("Error saving borrower:", error);
+      }
+  });
+  
+  
+  </script>
+  
+  
+  
+  </body>
+  </html>
