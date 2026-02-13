@@ -23,6 +23,8 @@
         <tr>
           <th>Borrower ID</th>
           <th>Full Name</th>
+          <th>Contact</th>
+          <th>Address</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
@@ -47,6 +49,14 @@
             <div class="mb-3">
               <label class="form-label">Full Name</label>
               <input type="text" id="borrowerName" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Contact</label>
+              <input type="text" id="borrowerContact" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label class ="form-label">Address</label>
+              <input type="text" id="borrowerAddress" class="form-control">
             </div>
             <div class="mb-3">
               <label class="form-label">Status</label>
@@ -91,24 +101,29 @@
       borrowers.forEach(borrower => {
       const status = borrower.Status || borrower.STATUS || borrower.status || "Unknown";
       const row = `
-    <tr>
-        <td>${borrower.BorrowerID}</td>
-        <td>${borrower.FullName}</td>
-        <td>${status}</td>
-        <td>
-            <button class="btn btn-sm btn-primary editBtn"
-                data-id="${borrower.BorrowerID}"
-                data-name="${borrower.FullName}"
-                data-status="${status}">
-                Edit
-            </button>
-            <button class="btn btn-sm btn-danger deleteBtn"
-                data-id="${borrower.BorrowerID}">
-                Delete
-            </button>
-        </td>
-    </tr>
+<tr>
+    <td>${borrower.BorrowerID}</td>
+    <td>${borrower.FullName}</td>
+    <td>${borrower.Contact || ""}</td>
+    <td>${borrower.Address || ""}</td>
+    <td>${status}</td>
+    <td>
+        <button class="btn btn-sm btn-primary editBtn"
+            data-id="${borrower.BorrowerID}"
+            data-name="${borrower.FullName}"
+            data-contact="${borrower.Contact || ""}"
+            data-address="${borrower.Address || ""}"
+            data-status="${status}">
+            Edit
+        </button>
+        <button class="btn btn-sm btn-danger deleteBtn"
+            data-id="${borrower.BorrowerID}">
+            Delete
+        </button>
+    </td>
+</tr>
 `;
+
       table.innerHTML += row;
   });
   
@@ -132,8 +147,13 @@
       const id = e.target.getAttribute("data-id");
       const name = e.target.getAttribute("data-name");
       const status = e.target.getAttribute("data-status");
+      const contact = e.target.getAttribute("data-contact");
+      const address = e.target.getAttribute("data-address");
+
   
       // Fill the modal form
+      document.getElementById("borrowerContact").value = contact;
+      document.getElementById("borrowerAddress").value = address;
       document.getElementById("borrowerId").value = id;
       document.getElementById("borrowerName").value = name;
       document.getElementById("borrowerStatus").value = status;
@@ -146,14 +166,14 @@
   });
   
   // Update borrower function
-  async function updateBorrower(id, name, status) {
-      try {
-          await fetch(`${API_URL}?action=updateBorrower&id=${id}&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
-          await loadBorrowersTable(); // Refresh table after update
-      } catch(error) {
-          console.error("Error updating borrower:", error);
-      }
-  }
+  async function updateBorrower(id, name, contact, address, status) {
+    try {
+        await fetch(`${API_URL}?action=updateBorrower&id=${id}&name=${encodeURIComponent(name)}&contact=${encodeURIComponent(contact)}&address=${encodeURIComponent(address)}&status=${encodeURIComponent(status)}`);
+        await loadBorrowersTable();
+    } catch(error) {
+        console.error("Error updating borrower:", error);
+    }
+}
   
   // Delete borrower function
   async function deleteBorrower(id) {
@@ -197,29 +217,29 @@
       borrowerModal.show();
   });
   document.getElementById("borrowerForm").addEventListener("submit", async function(e){
-      e.preventDefault();
-  
-      const id = document.getElementById("borrowerId").value; // empty = Add, has value = Edit
-      const name = document.getElementById("borrowerName").value.trim();
-      const status = document.getElementById("borrowerStatus").value;
-  
-      if(!name) return alert("Please enter the borrower's name");
-  
-      try {
-          if(id) {
-              // EDIT
-              await fetch(`${API_URL}?action=updateBorrower&id=${id}&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
-          } else {
-              // ADD
-              await fetch(`${API_URL}?action=addBorrower&name=${encodeURIComponent(name)}&status=${encodeURIComponent(status)}`);
-          }
-  
-          borrowerModal.hide();
-          loadBorrowersTable(); // Refresh table
-      } catch(error) {
-          console.error("Error saving borrower:", error);
-      }
-  });
+    e.preventDefault();
+
+    const id = document.getElementById("borrowerId").value;
+    const name = document.getElementById("borrowerName").value.trim();
+    const status = document.getElementById("borrowerStatus").value;
+    const contact = document.getElementById("borrowerContact").value;
+    const address = document.getElementById("borrowerAddress").value;
+
+    if(!name) return alert("Please enter the borrower's name");
+
+    try {
+        if(id) {
+            await updateBorrower(id, name, contact, address, status);
+        } else {
+            await fetch(`${API_URL}?action=addBorrower&name=${encodeURIComponent(name)}&contact=${encodeURIComponent(contact)}&address=${encodeURIComponent(address)}&status=${encodeURIComponent(status)}`);
+        }
+
+        borrowerModal.hide();
+        loadBorrowersTable();
+    } catch(error) {
+        console.error("Error saving borrower:", error);
+    }
+});
   
   
   </script>
