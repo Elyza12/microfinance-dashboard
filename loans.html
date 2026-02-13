@@ -86,34 +86,23 @@
 </div>
 
 <script>
-const API_URL = "YOUR_APPS_SCRIPT_URL_HERE"; // replace with your Apps Script URL
+const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
-// Redirect to login if not logged in
+// Redirect if not logged in
 if(localStorage.getItem("loggedIn") !== "true"){
     window.location.href = "login.html";
 }
 
-// Fetch borrowers for dropdown
+// Fetch borrowers
 async function fetchBorrowers() {
-    try {
-        const res = await fetch(`${API_URL}?action=borrowers`);
-        const data = await res.json();
-        return data;
-    } catch (err) {
-        console.error("Error fetching borrowers:", err);
-        return [];
-    }
+    const res = await fetch(`${API_URL}?action=borrowers`);
+    return await res.json();
 }
 
 // Fetch loans
 async function fetchLoans() {
-    try {
-        const res = await fetch(`${API_URL}?action=loans`);
-        return await res.json();
-    } catch(err) {
-        console.error("Error fetching loans:", err);
-        return [];
-    }
+    const res = await fetch(`${API_URL}?action=loans`);
+    return await res.json();
 }
 
 // Load loans table
@@ -123,127 +112,123 @@ async function loadLoansTable() {
     table.innerHTML = "";
 
     loans.forEach(loan => {
-        const row = `
+
+        const borrower = loan.BorrowerID || loan.Borrower || "";
+
+        table.innerHTML += `
 <tr>
-    <td>${loan.LoanID}</td>
-    <td>${loan.Borrower}</td>
-    <td>${loan.Amount}</td>
-    <td>${loan.Interest}</td>
-    <td>${loan.StartDate}</td>
-    <td>${loan.DueDate}</td>
-    <td>${loan.Status}</td>
-    <td>
-        <button class="btn btn-sm btn-primary editLoanBtn"
-            data-id="${loan.LoanID}"
-            data-borrower="${loan.Borrower}"
-            data-amount="${loan.Amount}"
-            data-interest="${loan.Interest}"
-            data-start="${loan.StartDate}"
-            data-due="${loan.DueDate}"
-            data-status="${loan.Status}">
-            Edit
-        </button>
-        <button class="btn btn-sm btn-danger deleteLoanBtn"
-            data-id="${loan.LoanID}">
-            Delete
-        </button>
-    </td>
+<td>${loan.LoanID}</td>
+<td>${borrower}</td>
+<td>${loan.Amount}</td>
+<td>${loan.Interest}</td>
+<td>${loan.StartDate}</td>
+<td>${loan.DueDate}</td>
+<td>${loan.Status}</td>
+<td>
+<button class="btn btn-sm btn-primary editLoanBtn"
+data-id="${loan.LoanID}"
+data-borrower="${borrower}"
+data-amount="${loan.Amount}"
+data-interest="${loan.Interest}"
+data-start="${loan.StartDate}"
+data-due="${loan.DueDate}"
+data-status="${loan.Status}">
+Edit
+</button>
+
+<button class="btn btn-sm btn-danger deleteLoanBtn"
+data-id="${loan.LoanID}">
+Delete
+</button>
+</td>
 </tr>
-        `;
-        table.innerHTML += row;
+`;
     });
 }
 
-// Populate Borrowers dropdown in modal
+// Populate borrowers dropdown
 async function populateBorrowersDropdown() {
     const borrowers = await fetchBorrowers();
     const select = document.getElementById("loanBorrower");
     select.innerHTML = "";
+
     borrowers.forEach(b => {
         select.innerHTML += `<option value="${b.BorrowerID}">${b.FullName}</option>`;
     });
 }
 
-// Event listeners for edit/delete
+// Delete + Edit click
 document.addEventListener("click", async (e) => {
 
-    if(e.target.classList.contains("deleteLoanBtn")) {
-        const id = e.target.dataset.id;
-        if(confirm("Are you sure you want to delete this loan?")){
-            await fetch(`${API_URL}?action=deleteLoan&id=${id}`);
+    if(e.target.classList.contains("deleteLoanBtn")){
+        if(confirm("Delete loan?")){
+            await fetch(`${API_URL}?action=deleteLoan&id=${e.target.dataset.id}`);
             loadLoansTable();
         }
-        return;
     }
 
-    if(e.target.classList.contains("editLoanBtn")) {
+    if(e.target.classList.contains("editLoanBtn")){
         const btn = e.target;
-        document.getElementById("loanId").value = btn.dataset.id;
-        document.getElementById("loanBorrower").value = btn.dataset.borrower;
-        document.getElementById("loanAmount").value = btn.dataset.amount;
-        document.getElementById("loanInterest").value = btn.dataset.interest;
-        document.getElementById("loanStart").value = btn.dataset.start;
-        document.getElementById("loanDue").value = btn.dataset.due;
-        document.getElementById("loanStatus").value = btn.dataset.status;
-        document.getElementById("loanModalTitle").innerText = "Edit Loan";
+
+        await populateBorrowersDropdown();
+
+        loanId.value = btn.dataset.id;
+        loanBorrower.value = btn.dataset.borrower;
+        loanAmount.value = btn.dataset.amount;
+        loanInterest.value = btn.dataset.interest;
+        loanStart.value = btn.dataset.start;
+        loanDue.value = btn.dataset.due;
+        loanStatus.value = btn.dataset.status;
+
         loanModal.show();
     }
 });
 
-// Modal handling
-const loanModalEl = document.getElementById("loanModal");
-const loanModal = new bootstrap.Modal(loanModalEl);
+// Modal
+const loanModal = new bootstrap.Modal(document.getElementById("loanModal"));
 
-document.getElementById("addLoanBtn").addEventListener("click", async () => {
+document.getElementById("addLoanBtn").addEventListener("click", async ()=>{
     await populateBorrowersDropdown();
-    document.getElementById("loanForm").reset();
-    document.getElementById("loanId").value = "";
-    document.getElementById("loanModalTitle").innerText = "Add Loan";
+    loanForm.reset();
+    loanId.value="";
     loanModal.show();
 });
 
-// Handle form submit
-document.getElementById("loanForm").addEventListener("submit", async (e) => {
+// Save form
+loanForm.addEventListener("submit", async (e)=>{
     e.preventDefault();
 
-    const id = document.getElementById("loanId").value;
-    const borrower = document.getElementById("loanBorrower").value;
-    const amount = document.getElementById("loanAmount").value;
-    const interest = document.getElementById("loanInterest").value;
-    const start = document.getElementById("loanStart").value;
-    const due = document.getElementById("loanDue").value;
-    const status = document.getElementById("loanStatus").value;
+    const id = loanId.value;
 
     let url;
-    if(id) {
-        // Edit
-        url = `${API_URL}?action=updateLoan&id=${id}&borrower=${encodeURIComponent(borrower)}&amount=${encodeURIComponent(amount)}&interest=${encodeURIComponent(interest)}&start=${encodeURIComponent(start)}&due=${encodeURIComponent(due)}&status=${encodeURIComponent(status)}`;
-    } else {
-        // Add
-        url = `${API_URL}?action=addLoan&borrower=${encodeURIComponent(borrower)}&amount=${encodeURIComponent(amount)}&interest=${encodeURIComponent(interest)}&start=${encodeURIComponent(start)}&due=${encodeURIComponent(due)}&status=${encodeURIComponent(status)}`;
+
+    if(id){
+        url = `${API_URL}?action=updateLoan&id=${id}&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
+    }else{
+        url = `${API_URL}?action=addLoan&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
     }
 
     await fetch(url);
+
     loanModal.hide();
     loadLoansTable();
 });
 
-// Search functionality
-document.getElementById("searchLoan").addEventListener("input", function() {
+// Search
+document.getElementById("searchLoan").addEventListener("input", function(){
     const term = this.value.toLowerCase();
-    const rows = document.querySelectorAll("#loansTable tr");
-    rows.forEach(row => {
-        const id = row.cells[0].innerText.toLowerCase();
-        const borrower = row.cells[1].innerText.toLowerCase();
-        row.style.display = id.includes(term) || borrower.includes(term) ? "" : "none";
+    document.querySelectorAll("#loansTable tr").forEach(row=>{
+        row.style.display =
+        row.innerText.toLowerCase().includes(term) ? "" : "none";
     });
 });
 
-// Initial load
+// Initial Load
 populateBorrowersDropdown();
 loadLoansTable();
 
 </script>
+
 
 </body>
 </html>
