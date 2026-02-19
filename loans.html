@@ -25,6 +25,8 @@
         <th>Borrower</th>
         <th>Amount</th>
         <th>Interest</th>
+        <th>Total Payable</th>
+        <th>Remaining Balance</th>
         <th>Start Date</th>
         <th>Due Date</th>
         <th>Status</th>
@@ -85,13 +87,13 @@
   </div>
 </div>
 
-  
 <script>
-  function formatDate(dateString){
+function formatDate(dateString){
     if(!dateString) return "";
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
 }
+
 const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
 // Redirect if not logged in
@@ -117,23 +119,33 @@ async function loadLoansTable() {
     const table = document.getElementById("loansTable");
     table.innerHTML = "";
 
-    loans.forEach(loan => {
+    // Borrower map
+    const borrowers = await fetchBorrowers();
+    let borrowerMap = {};
+    borrowers.forEach(b => borrowerMap[b.BorrowerID] = b.FullName);
 
-        const borrower = loan.BorrowerID || loan.Borrower || "";
+    loans.forEach(loan => {
+        const borrowerName = borrowerMap[loan.BorrowerID] || loan.Borrower || "";
+
+        // compute Total Payable & Remaining Balance
+        const totalPayable = Number(loan.Amount) + (Number(loan.Amount) * Number(loan.Interest)/100);
+        const remainingBalance = loan.RemainingBalance ?? totalPayable;
 
         table.innerHTML += `
 <tr>
 <td>${loan.LoanID}</td>
-<td>${borrower}</td>
+<td>${borrowerName}</td>
 <td>${loan.Amount}</td>
 <td>${loan.Interest}</td>
+<td>${totalPayable.toFixed(2)}</td>
+<td>${remainingBalance.toFixed(2)}</td>
 <td>${formatDate(loan.StartDate)}</td>
 <td>${formatDate(loan.DueDate)}</td>
 <td>${loan.Status}</td>
 <td>
 <button class="btn btn-sm btn-primary editLoanBtn"
 data-id="${loan.LoanID}"
-data-borrower="${borrower}"
+data-borrower="${loan.BorrowerID}"
 data-amount="${loan.Amount}"
 data-interest="${loan.Interest}"
 data-start="${loan.StartDate}"
@@ -141,7 +153,6 @@ data-due="${loan.DueDate}"
 data-status="${loan.Status}">
 Edit
 </button>
-
 <button class="btn btn-sm btn-danger deleteLoanBtn"
 data-id="${loan.LoanID}">
 Delete
@@ -152,12 +163,12 @@ Delete
     });
 }
 
+
 // Populate borrowers dropdown
 async function populateBorrowersDropdown() {
     const borrowers = await fetchBorrowers();
     const select = document.getElementById("loanBorrower");
     select.innerHTML = "";
-
     borrowers.forEach(b => {
         select.innerHTML += `<option value="${b.BorrowerID}">${b.FullName}</option>`;
     });
@@ -165,7 +176,6 @@ async function populateBorrowersDropdown() {
 
 // Delete + Edit click
 document.addEventListener("click", async (e) => {
-
     if(e.target.classList.contains("deleteLoanBtn")){
         if(confirm("Delete loan?")){
             await fetch(`${API_URL}?action=deleteLoan&id=${e.target.dataset.id}`);
@@ -175,7 +185,6 @@ document.addEventListener("click", async (e) => {
 
     if(e.target.classList.contains("editLoanBtn")){
         const btn = e.target;
-
         await populateBorrowersDropdown();
 
         loanId.value = btn.dataset.id;
@@ -203,19 +212,14 @@ document.getElementById("addLoanBtn").addEventListener("click", async ()=>{
 // Save form
 loanForm.addEventListener("submit", async (e)=>{
     e.preventDefault();
-
     const id = loanId.value;
-
     let url;
-
     if(id){
         url = `${API_URL}?action=updateLoan&id=${id}&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
     }else{
         url = `${API_URL}?action=addLoan&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
     }
-
     await fetch(url);
-
     loanModal.hide();
     loadLoansTable();
 });
@@ -234,7 +238,5 @@ populateBorrowersDropdown();
 loadLoansTable();
 
 </script>
-
-
 </body>
 </html>
