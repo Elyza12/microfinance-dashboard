@@ -1,313 +1,218 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Loans</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</head>
-<body>
-
-<h1 class="text-center mt-5">Loans Page</h1>
-<p class="text-center">List of all loans.</p>
-
-<div class="container mt-4">
-  <div class="mb-3 d-flex justify-content-between">
-    <input type="text" id="searchLoan" class="form-control w-50" placeholder="Search loan by ID or Borrower">
-    <button class="btn btn-success" id="addLoanBtn">Add Loan</button>
-  </div>
-
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Loan ID</th>
-        <th>Borrower</th>
-        <th>Amount</th>
-        <th>Interest</th>
-        <th>Total Payable</th>
-        <th>Remaining Balance</th>
-        <th>Start Date</th>
-        <th>Due Date</th>
-        <th>Status</th>
-        <th>Make Payment</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="loansTable"></tbody>
-  </table>
-</div>
-
-<!-- Loan Modal -->
-<div class="modal fade" id="loanModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Loan</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <form id="loanForm">
-          <input type="hidden" id="loanId">
-
-          <div class="mb-3">
-            <label class="form-label">Borrower</label>
-            <select id="loanBorrower" class="form-control" required></select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Amount</label>
-            <input type="number" id="loanAmount" class="form-control" required>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Interest (%)</label>
-            <input type="number" id="loanInterest" class="form-control" required>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Total Payable</label>
-            <input type="text" id="loanTotal" class="form-control" readonly>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Start Date</label>
-            <input type="date" id="loanStart" class="form-control" required>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Due Date</label>
-            <input type="date" id="loanDue" class="form-control" required>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Status</label>
-            <select id="loanStatus" class="form-control">
-              <option value="Active">Active</option>
-              <option value="Paid">Paid</option>
-              <option value="Late">Late</option>
-            </select>
-          </div>
-
-          <button type="submit" class="btn btn-primary w-100">Save</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Payment Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Make Payment</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="paymentLoanId">
-
-        <div class="mb-3">
-          <label class="form-label">Remaining Balance</label>
-          <input type="text" id="paymentRemaining" class="form-control" readonly>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Payment Amount</label>
-          <input type="number" id="paymentAmount" class="form-control">
-        </div>
-
-        <button id="savePaymentBtn" class="btn btn-success w-100">Submit Payment</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
-
-function formatDate(dateString){
-    if(!dateString) return "";
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+if(localStorage.getItem("loggedIn") !== "true"){
+  window.location.href = "login.html";
 }
 
 const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
-if(localStorage.getItem("loggedIn") !== "true"){
-    window.location.href = "login.html";
-}
-
-async function fetchBorrowers() {
-    const res = await fetch(`${API_URL}?action=borrowers`);
-    return await res.json();
-}
-
-async function fetchLoans() {
-    const res = await fetch(`${API_URL}?action=loans`);
-    return await res.json();
-}
-
-async function loadLoansTable() {
-    const loans = await fetchLoans();
-    const table = document.getElementById("loansTable");
-    table.innerHTML = "";
-
-    const borrowers = await fetchBorrowers();
-    let borrowerMap = {};
-    borrowers.forEach(b => borrowerMap[b.BorrowerID] = b.FullName);
-
-    loans.forEach(loan => {
-
-        const borrowerName = borrowerMap[loan.BorrowerID] || "";
-        const totalPayable = Number(loan.Amount) + (Number(loan.Amount) * Number(loan.Interest)/100);
-        const remainingBalance = loan.RemainingBalance ?? totalPayable;
-
-        table.innerHTML += `
-<tr>
-<td>${loan.LoanID}</td>
-<td>${borrowerName}</td>
-<td>${loan.Amount}</td>
-<td>${loan.Interest}</td>
-<td>${totalPayable.toFixed(2)}</td>
-<td>${remainingBalance.toFixed(2)}</td>
-<td>${formatDate(loan.StartDate)}</td>
-<td>${formatDate(loan.DueDate)}</td>
-<td>${loan.Status}</td>
-<td>
-<button class="btn btn-sm btn-warning payLoanBtn"
-data-id="${loan.LoanID}"
-data-balance="${remainingBalance}">
-Pay
-</button>
-</td>
-<td>
-<button class="btn btn-sm btn-primary editLoanBtn"
-data-id="${loan.LoanID}"
-data-borrower="${loan.BorrowerID}"
-data-amount="${loan.Amount}"
-data-interest="${loan.Interest}"
-data-start="${loan.StartDate}"
-data-due="${loan.DueDate}"
-data-status="${loan.Status}">
-Edit
-</button>
-<button class="btn btn-sm btn-danger deleteLoanBtn"
-data-id="${loan.LoanID}">
-Delete
-</button>
-</td>
-</tr>
-`;
-    });
-}
-
-async function populateBorrowersDropdown() {
-    const borrowers = await fetchBorrowers();
-    loanBorrower.innerHTML = "";
-    borrowers.forEach(b => {
-        loanBorrower.innerHTML += `<option value="${b.BorrowerID}">${b.FullName}</option>`;
-    });
-}
-
 const loanModal = new bootstrap.Modal(document.getElementById("loanModal"));
 const paymentModal = new bootstrap.Modal(document.getElementById("paymentModal"));
 
-document.addEventListener("click", async (e) => {
+// ----------------------
+// FETCH DATA
+// ----------------------
+async function fetchBorrowers() {
+  const res = await fetch(`${API_URL}?action=borrowers`);
+  return await res.json();
+}
 
-    if(e.target.classList.contains("deleteLoanBtn")){
-        if(confirm("Delete loan?")){
-            await fetch(`${API_URL}?action=deleteLoan&id=${e.target.dataset.id}`);
-            loadLoansTable();
-        }
+async function fetchLoans() {
+  const res = await fetch(`${API_URL}?action=loans`);
+  return await res.json();
+}
+
+// ----------------------
+// LOAD LOANS TABLE
+// ----------------------
+async function loadLoansTable() {
+  const loans = await fetchLoans();
+  const borrowers = await fetchBorrowers();
+  const table = document.getElementById("loansTable");
+  table.innerHTML = "";
+
+  let borrowerMap = {};
+  borrowers.forEach(b => borrowerMap[b.BorrowerID] = b.FullName);
+
+  loans.sort((a,b)=> new Date(b.StartDate) - new Date(a.StartDate));
+
+  loans.forEach(loan => {
+    const borrowerName = borrowerMap[loan.BorrowerID] || "Unknown";
+    const totalPayable = Number(loan.Amount) + (Number(loan.Amount) * Number(loan.Interest)/100);
+    const remainingBalance = loan.RemainingBalance ?? totalPayable;
+
+    table.innerHTML += `
+      <tr>
+        <td>${loan.LoanID}</td>
+        <td>${borrowerName}</td>
+        <td>₱${Number(loan.Amount).toFixed(2)}</td>
+        <td>${loan.Interest}</td>
+        <td>₱${totalPayable.toFixed(2)}</td>
+        <td>₱${remainingBalance.toFixed(2)}</td>
+        <td>${formatDate(loan.StartDate)}</td>
+        <td>${formatDate(loan.DueDate)}</td>
+        <td>${loan.Status}</td>
+        <td>
+          <button class="btn btn-sm btn-warning payLoanBtn" 
+            data-id="${loan.LoanID}" 
+            data-balance="${remainingBalance}">
+            Pay
+          </button>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-primary editLoanBtn" 
+            data-id="${loan.LoanID}" 
+            data-borrower="${loan.BorrowerID}"
+            data-amount="${loan.Amount}"
+            data-interest="${loan.Interest}"
+            data-start="${loan.StartDate}"
+            data-due="${loan.DueDate}"
+            data-status="${loan.Status}">
+            Edit
+          </button>
+          <button class="btn btn-sm btn-danger deleteLoanBtn" data-id="${loan.LoanID}">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// ----------------------
+// BORROWER DROPDOWN
+// ----------------------
+async function populateBorrowersDropdown() {
+  const borrowers = await fetchBorrowers();
+  loanBorrower.innerHTML = "";
+  borrowers.forEach(b => {
+    loanBorrower.innerHTML += `<option value="${b.BorrowerID}">${b.FullName}</option>`;
+  });
+}
+
+// ----------------------
+// FORMAT DATE
+// ----------------------
+function formatDate(dateString){
+  if(!dateString) return "";
+  return new Date(dateString).toLocaleDateString("en-US", {year:'numeric', month:'long', day:'numeric'});
+}
+
+// ----------------------
+// HANDLE CLICK EVENTS
+// ----------------------
+document.addEventListener("click", async e => {
+
+  // Delete Loan
+  if(e.target.classList.contains("deleteLoanBtn")){
+    if(confirm("Delete loan?")){
+      await fetch(`${API_URL}?action=deleteLoan&id=${e.target.dataset.id}`);
+      loadLoansTable();
     }
+  }
 
-    if(e.target.classList.contains("editLoanBtn")){
-        await populateBorrowersDropdown();
+  // Edit Loan
+  if(e.target.classList.contains("editLoanBtn")){
+    await populateBorrowersDropdown();
 
-        loanId.value = e.target.dataset.id;
-        loanBorrower.value = e.target.dataset.borrower;
-        loanAmount.value = e.target.dataset.amount;
-        loanInterest.value = e.target.dataset.interest;
-        loanStart.value = e.target.dataset.start;
-        loanDue.value = e.target.dataset.due;
-        loanStatus.value = e.target.dataset.status;
+    loanId.value = e.target.dataset.id;
+    loanBorrower.value = e.target.dataset.borrower;
+    loanAmount.value = e.target.dataset.amount;
+    loanInterest.value = e.target.dataset.interest;
+    loanStart.value = e.target.dataset.start;
+    loanDue.value = e.target.dataset.due;
+    loanStatus.value = e.target.dataset.status;
 
-        calculateTotalPayable();
-        loanModal.show();
-    }
+    calculateTotalPayable();
+    loanModal.show();
+  }
 
-    if(e.target.classList.contains("payLoanBtn")){
-        paymentLoanId.value = e.target.dataset.id;
-        paymentRemaining.value = Number(e.target.dataset.balance).toFixed(2);
-        paymentAmount.value = "";
-        paymentModal.show();
-    }
+  // Make Payment
+  if(e.target.classList.contains("payLoanBtn")){
+    paymentLoanId.value = e.target.dataset.id;
+    paymentRemaining.value = Number(e.target.dataset.balance).toFixed(2);
+    paymentAmount.value = "";
+    paymentModal.show();
+  }
 });
 
-document.getElementById("savePaymentBtn").addEventListener("click", async ()=>{
-    const loanId = paymentLoanId.value;
-    const payment = Number(paymentAmount.value);
-    const remaining = Number(paymentRemaining.value);
+// ----------------------
+// SUBMIT PAYMENT
+// ----------------------
+document.getElementById("savePaymentBtn").addEventListener("click", async () => {
+  const loanId = paymentLoanId.value;
+  const payment = Number(paymentAmount.value);
+  const remaining = Number(paymentRemaining.value);
 
-    if(payment <= 0 || payment > remaining){
-        alert("Invalid payment amount");
-        return;
-    }
+  if(payment <= 0 || payment > remaining){
+    return alert("Invalid payment amount");
+  }
 
-    const newBalance = remaining - payment;
-    const newStatus = newBalance === 0 ? "Paid" : "Active";
+  await fetch(`${API_URL}?action=makePayment&id=${loanId}&amount=${payment}`);
 
-    await fetch(`${API_URL}?action=makePayment&id=${loanId}&amount=${payment}`);
-
-    paymentModal.hide();
-    loadLoansTable();
+  paymentModal.hide();
+  await loadLoansTable();
 });
 
-loanForm.addEventListener("submit", async (e)=>{
-    e.preventDefault();
+// ----------------------
+// SUBMIT LOAN FORM
+// ----------------------
+loanForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const id = loanId.value;
+  const borrower = loanBorrower.value;
+  const amount = loanAmount.value;
+  const interest = loanInterest.value;
+  const start = loanStart.value;
+  const due = loanDue.value;
+  const status = loanStatus.value;
 
-    const id = loanId.value;
-    let url;
+  let url = "";
+  if(id){
+    url = `${API_URL}?action=updateLoan&id=${id}&borrower=${borrower}&amount=${amount}&interest=${interest}&start=${start}&due=${due}&status=${status}`;
+  } else {
+    url = `${API_URL}?action=addLoan&borrower=${borrower}&amount=${amount}&interest=${interest}&start=${start}&due=${due}&status=${status}`;
+  }
 
-    if(id){
-        url = `${API_URL}?action=updateLoan&id=${id}&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
-    }else{
-        url = `${API_URL}?action=addLoan&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
-    }
-
-    await fetch(url);
-    loanModal.hide();
-    loadLoansTable();
+  await fetch(url);
+  loanModal.hide();
+  loadLoansTable();
 });
 
+// ----------------------
+// CALCULATE TOTAL PAYABLE
+// ----------------------
 function calculateTotalPayable(){
-    const amount = Number(loanAmount.value) || 0;
-    const interest = Number(loanInterest.value) || 0;
-    const total = amount + (amount * interest / 100);
-    loanTotal.value = total.toFixed(2);
+  const amount = Number(loanAmount.value) || 0;
+  const interest = Number(loanInterest.value) || 0;
+  loanTotal.value = (amount + amount * interest/100).toFixed(2);
 }
 
 loanAmount.addEventListener("input", calculateTotalPayable);
 loanInterest.addEventListener("input", calculateTotalPayable);
 
+// ----------------------
+// SEARCH FUNCTION
+// ----------------------
 document.getElementById("searchLoan").addEventListener("input", function(){
-    const term = this.value.toLowerCase();
-    document.querySelectorAll("#loansTable tr").forEach(row=>{
-        row.style.display = row.innerText.toLowerCase().includes(term) ? "" : "none";
-    });
+  const term = this.value.toLowerCase();
+  document.querySelectorAll("#loansTable tr").forEach(row=>{
+    row.style.display = row.innerText.toLowerCase().includes(term) ? "" : "none";
+  });
 });
 
-document.getElementById("addLoanBtn").addEventListener("click", async ()=>{
-    await populateBorrowersDropdown();
-    loanForm.reset();
-    loanId.value="";
-    loanTotal.value="";
-    loanModal.show();
+// ----------------------
+// ADD LOAN BUTTON
+// ----------------------
+document.getElementById("addLoanBtn").addEventListener("click", async () => {
+  await populateBorrowersDropdown();
+  loanForm.reset();
+  loanId.value = "";
+  loanTotal.value = "";
+  loanModal.show();
 });
 
+// ----------------------
+// INITIAL LOAD
+// ----------------------
 populateBorrowersDropdown();
 loadLoansTable();
 
 </script>
-</body>
-</html>
