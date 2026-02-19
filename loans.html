@@ -85,7 +85,13 @@
   </div>
 </div>
 
+  
 <script>
+  function formatDate(dateString){
+    if(!dateString) return "";
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+}
 const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
 // Redirect if not logged in
@@ -121,8 +127,8 @@ async function loadLoansTable() {
 <td>${borrower}</td>
 <td>${loan.Amount}</td>
 <td>${loan.Interest}</td>
-<td>${loan.StartDate}</td>
-<td>${loan.DueDate}</td>
+<td>${formatDate(loan.StartDate)}</td>
+<td>${formatDate(loan.DueDate)}</td>
 <td>${loan.Status}</td>
 <td>
 <button class="btn btn-sm btn-primary editLoanBtn"
