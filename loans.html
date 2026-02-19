@@ -257,7 +257,7 @@ document.getElementById("savePaymentBtn").addEventListener("click", async ()=>{
     const newBalance = remaining - payment;
     const newStatus = newBalance === 0 ? "Paid" : "Active";
 
-    await fetch(`${API_URL}?action=makePayment&id=${loanId}&balance=${newBalance}&status=${newStatus}`);
+    await fetch(`${API_URL}?action=makePayment&id=${loanId}&amount=${payment}`);
 
     paymentModal.hide();
     loadLoansTable();
