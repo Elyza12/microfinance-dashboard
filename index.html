@@ -3,256 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Microfinance Admin</title>
-
+<title>Dashboard</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body {
-    background: #f5f7fb;
-    font-family: Arial, sans-serif;
-}
-.sidebar {
-    width: 240px;
-    min-height: 100vh;
-    background: #1e293b;
-}
-.sidebar .nav-link {
-    color: #cbd5e1;
-    margin-bottom: 10px;
-}
-.sidebar .nav-link:hover {
-    background: #334155;
-    border-radius: 8px;
-    color: white;
-}
-.sidebar .active {
-    background: #0d6efd;
-    border-radius: 8px;
-    color: white !important;
-}
-.main-content {
-    background: #f1f5f9;
-    min-height: 100vh;
-}
-.dashboard-card {
-    border: none;
-    border-radius: 14px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
-</style>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
 
-<div class="d-flex">
+<div class="container mt-5">
 
-<!-- SIDEBAR -->
-<div class="sidebar p-3">
-    <h4 class="text-white">MicroFinance</h4>
-    <hr class="text-white">
-    <ul class="nav flex-column">
-        <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="borrowers.html">Borrowers</a></li>
-        <li class="nav-item"><a class="nav-link" href="loans.html">Loans</a></li>
-        <li class="nav-item"><a class="nav-link" href="payments.html">Payments</a></li>
-    </ul>
-    <button id="logoutBtn" class="btn btn-danger mt-3 w-100">Logout</button>
-</div>
+  <h1 class="text-center mb-4">Dashboard</h1>
 
-<!-- MAIN CONTENT -->
-<div class="main-content flex-grow-1">
-<nav class="navbar navbar-light bg-white shadow-sm px-4">
-    <span class="navbar-brand">Admin Dashboard</span>
-</nav>
-
-<div class="container-fluid mt-4">
-
-<!-- Charts Row -->
-<div class="row mt-4">
-  <div class="col-md-6">
-    <div class="card p-3">
-      <h6>Loan Status</h6>
-      <canvas id="loanStatusChart"></canvas>
+  <!-- Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-bg-primary">
+        <div class="card-body">
+          <h5 class="card-title">Total Borrowers</h5>
+          <p class="card-text fs-3" id="totalBorrowers">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-success">
+        <div class="card-body">
+          <h5 class="card-title">Total Loans</h5>
+          <p class="card-text fs-3" id="totalLoans">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-warning">
+        <div class="card-body">
+          <h5 class="card-title">Total Collection</h5>
+          <p class="card-text fs-3" id="totalCollection">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-bg-danger">
+        <div class="card-body">
+          <h5 class="card-title">Overdue Loans</h5>
+          <p class="card-text fs-3" id="overdueLoans">0</p>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="col-md-6">
-    <div class="card p-3">
-      <h6>Payments Collected (Last 7 Days)</h6>
-      <canvas id="paymentsChart"></canvas>
-    </div>
+
+  <!-- Loans Table -->
+  <div class="mb-3 d-flex justify-content-between">
+    <input type="text" id="searchLoanDashboard" class="form-control w-50" placeholder="Search loan by ID or Borrower">
+    <button class="btn btn-success" id="addLoanBtnDashboard">Add Loan</button>
   </div>
-</div>
 
-<!-- Dashboard Cards -->
-<div class="row g-4 mt-4">
-    <div class="col-md-3">
-        <div class="card dashboard-card">
-            <div class="card-body">
-                <h6>Total Loans</h6>
-                <h3 id="totalLoans">0</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card dashboard-card">
-            <div class="card-body">
-                <h6>Today's Collection</h6>
-                <h3 id="todayCollection">₱0</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card dashboard-card">
-            <div class="card-body">
-                <h6>Active Borrowers</h6>
-                <h3 id="activeBorrowers">0</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card dashboard-card">
-            <div class="card-body">
-                <h6>Overdue Loans</h6>
-                <h3 id="overdueLoans">0</h3>
-            </div>
-        </div>
-    </div>
-</div>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Loan ID</th>
+        <th>Borrower</th>
+        <th>Amount</th>
+        <th>Interest</th>
+        <th>Total Payable</th>
+        <th>Remaining Balance</th>
+        <th>Start Date</th>
+        <th>Due Date</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="loansTableDashboard"></tbody>
+  </table>
 
-<!-- Recent Loans Table -->
-<div class="card mt-4">
-<div class="card-header">Recent Loans</div>
-<div class="card-body">
-<table class="table table-striped">
-<thead>
-<tr>
-<th>Borrower</th>
-<th>Amount</th>
-<th>Status</th>
-<th>Date</th>
-</tr>
-</thead>
-<tbody id="loanTable"></tbody>
-</table>
-</div>
-</div>
-
-</div>
-</div>
 </div>
 
 <script>
-if(localStorage.getItem("loggedIn") !== "true"){
-    window.location.href = "login.html";
-}
-
-document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("loggedIn");
-    window.location.href = "login.html";
-});
-
 const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
-async function fetchData(action) {
-    const res = await fetch(`${API_URL}?action=${action}`);
-    return await res.json();
+if(localStorage.getItem("loggedIn") !== "true"){
+  window.location.href = "login.html";
 }
 
-// ----------------------
-// DASHBOARD
-// ----------------------
-async function updateDashboard() {
-    const borrowers = await fetchData("borrowers");
-    const loans = await fetchData("loans");
-    const payments = await fetchData("payments");
-
-    // Active Borrowers
-    document.getElementById("activeBorrowers").innerText =
-        borrowers.filter(b => String(b.Status || "").trim().toLowerCase() === "active").length;
-
-    // Total & Overdue Loans
-    document.getElementById("totalLoans").innerText = loans.length;
-    document.getElementById("overdueLoans").innerText =
-        loans.filter(l => String(l.Status || "").trim().toLowerCase() === "overdue").length;
-
-    // Today's Collection
-    const todayStr = new Date().toISOString().split("T")[0];
-    const todayPayments = payments.filter(p=>{
-        if(!p.Date) return false;
-        return new Date(p.Date).toISOString().split("T")[0] === todayStr;
-    });
-    const totalToday = todayPayments.reduce((sum,p)=>sum + Number(p.AmountPaid || 0),0);
-    document.getElementById("todayCollection").innerText = `₱${totalToday.toFixed(2)}`;
-
-    // Loan Status Chart
-    const loanStatusCounts = {
-        Active: loans.filter(l => String(l.Status || "").trim().toLowerCase() === "active").length,
-        Paid: loans.filter(l => String(l.Status || "").trim().toLowerCase() === "paid").length,
-        Overdue: loans.filter(l => String(l.Status || "").trim().toLowerCase() === "overdue").length
-    };
-
-    new Chart(document.getElementById("loanStatusChart"), {
-        type: 'pie',
-        data: {
-            labels: ["Active", "Paid", "Overdue"],
-            datasets:[{data:[loanStatusCounts.Active,loanStatusCounts.Paid,loanStatusCounts.Overdue], backgroundColor:["#0d6efd","#198754","#dc3545"]}]
-        },
-        options:{responsive:true, plugins:{legend:{position:'bottom'}}}
-    });
-
-    // Payments Last 7 Days
-    const today = new Date();
-    const last7Days = Array.from({length:7}, (_,i)=>{
-        const d = new Date(today);
-        d.setDate(today.getDate()-i);
-        return d;
-    }).reverse();
-
-    const paymentsPerDay = last7Days.map(d=>{
-        const dateStr = d.toISOString().split("T")[0];
-        const dayPayments = payments.filter(p=>p.Date && new Date(p.Date).toISOString().split("T")[0] === dateStr);
-        return dayPayments.reduce((sum,p)=>sum + Number(p.AmountPaid || 0),0);
-    });
-
-    new Chart(document.getElementById("paymentsChart"), {
-        type:'bar',
-        data:{
-            labels:last7Days.map(d=>`${d.getMonth()+1}/${d.getDate()}`),
-            datasets:[{label:"₱ Collected", data:paymentsPerDay, backgroundColor:"#0d6efd"}]
-        },
-        options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
-    });
+function formatDate(dateString){
+  if(!dateString) return "";
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(dateString).toLocaleDateString('en-US', options);
 }
 
-// ----------------------
-// RECENT LOANS TABLE
-// ----------------------
-async function updateRecentLoans() {
-    const loans = await fetchData("loans");
-    const borrowers = await fetchData("borrowers");
-
-    const table = document.getElementById("loanTable");
-    table.innerHTML = "";
-
-    loans.sort((a,b)=> new Date(b.StartDate) - new Date(a.StartDate));
-    loans.slice(0,5).forEach(loan => {
-        const borrower = borrowers.find(b => b.BorrowerID === loan.BorrowerID);
-        const borrowerName = borrower ? borrower.FullName : "Unknown";
-        const formattedDate = loan.StartDate ? new Date(loan.StartDate).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}) : "";
-        table.innerHTML += `<tr>
-            <td>${borrowerName}</td>
-            <td>₱${Number(loan.Amount).toFixed(2)}</td>
-            <td>${loan.Status}</td>
-            <td>${formattedDate}</td>
-        </tr>`;
-    });
+async function fetchBorrowers(){  
+  const res = await fetch(`${API_URL}?action=borrowers`);
+  return await res.json();
 }
 
-// ----------------------
-// RUN EVERYTHING
-// ----------------------
-updateDashboard();
-updateRecentLoans();
+async function fetchLoans(){  
+  const res = await fetch(`${API_URL}?action=loans`);
+  return await res.json();
+}
+
+async function loadDashboard(){
+  const borrowers = await fetchBorrowers();
+  const loans = await fetchLoans();
+
+  document.getElementById("totalBorrowers").innerText = borrowers.length;
+  document.getElementById("totalLoans").innerText = loans.length;
+
+  let totalCollection = 0;
+  let overdueCount = 0;
+  const today = new Date();
+
+  const borrowersMap = {};
+  borrowers.forEach(b => borrowersMap[b.BorrowerID] = b.FullName);
+
+  const table = document.getElementById("loansTableDashboard");
+  table.innerHTML = "";
+
+  loans.forEach(loan => {
+    const totalPayable = Number(loan.Amount) + (Number(loan.Amount) * Number(loan.Interest)/100);
+    const remaining = loan.RemainingBalance ?? totalPayable;
+    totalCollection += totalPayable - remaining;
+
+    const dueDate = new Date(loan.DueDate);
+    if(dueDate < today && remaining > 0) overdueCount++;
+
+    table.innerHTML += `
+<tr>
+<td>${loan.LoanID}</td>
+<td>${borrowersMap[loan.BorrowerID] || ""}</td>
+<td>${loan.Amount}</td>
+<td>${loan.Interest}</td>
+<td>${totalPayable.toFixed(2)}</td>
+<td>${remaining.toFixed(2)}</td>
+<td>${formatDate(loan.StartDate)}</td>
+<td>${formatDate(loan.DueDate)}</td>
+<td>${loan.Status}</td>
+</tr>`;
+  });
+
+  document.getElementById("totalCollection").innerText = totalCollection.toFixed(2);
+  document.getElementById("overdueLoans").innerText = overdueCount;
+}
+
+// Simple search in dashboard table
+document.getElementById("searchLoanDashboard").addEventListener("input", function(){
+  const term = this.value.toLowerCase();
+  document.querySelectorAll("#loansTableDashboard tr").forEach(row=>{
+    row.style.display = row.innerText.toLowerCase().includes(term) ? "" : "none";
+  });
+});
+
+loadDashboard();
 </script>
 
 </body>
