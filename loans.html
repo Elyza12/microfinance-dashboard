@@ -64,6 +64,10 @@
             <label class="form-label">Interest (%)</label>
             <input type="number" id="loanInterest" class="form-control" required>
           </div>
+          <div class="mb=3">
+            <label class="form-label">Total Payable</label>
+            <input type="text" id="loanTotal" class="form-control" readonly>
+          </div>
           <div class="mb-3">
             <label class="form-label">Start Date</label>
             <input type="date" id="loanStart" class="form-control" required>
@@ -195,6 +199,8 @@ document.addEventListener("click", async (e) => {
         loanDue.value = btn.dataset.due;
         loanStatus.value = btn.dataset.status;
 
+        calculateTotalPayable();
+
         loanModal.show();
     }
 });
@@ -206,6 +212,7 @@ document.getElementById("addLoanBtn").addEventListener("click", async ()=>{
     await populateBorrowersDropdown();
     loanForm.reset();
     loanId.value="";
+    loanTotal.value = "";
     loanModal.show();
 });
 
@@ -232,6 +239,19 @@ document.getElementById("searchLoan").addEventListener("input", function(){
         row.innerText.toLowerCase().includes(term) ? "" : "none";
     });
 });
+
+  function calculateTotalPayable(){
+    const amount = Number(loanAmount.value) || 0;
+    const interest = Number(loanInterest.value) || 0;
+    
+
+    const total = amount + (amount * interest / 100);
+    loanTotal.value = total.toFixed(2);
+  }
+
+  // Recalculate when typing
+  loanAmount.addEventListener("input", calculateTotalPayable);
+  loanInterest.addEventListener("input", calculateTotalPayable);
 
 // Initial Load
 populateBorrowersDropdown();
