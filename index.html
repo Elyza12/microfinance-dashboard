@@ -183,76 +183,114 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
     window.location.href = "login.html";
 });
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec"; // <-- make sure this is correct
 
-// Fetch data helper
+// ----------------------
+// FETCH HELPER
+// ----------------------
 async function fetchData(action) {
     const response = await fetch(`${API_URL}?action=${action}`);
-    const data = await response.json();
-    return data;
+    return await response.json();
 }
 
-// Update dashboard numbers
+// ----------------------
+// UPDATE DASHBOARD NUMBERS
+// ----------------------
 async function updateDashboard() {
+
     const borrowers = await fetchData("borrowers");
-    document.getElementById("activeBorrowers").innerText = borrowers.filter(b => b.Status?.trim() === "Active").length;
+    document.getElementById("activeBorrowers").innerText =
+        borrowers.filter(b => (b.Status || "").trim().toLowerCase() === "active").length;
 
     const loans = await fetchData("loans");
     document.getElementById("totalLoans").innerText = loans.length;
-    document.getElementById("overdueLoans").innerText = loans.filter(l => l.Status?.trim().toLowerCase() === "overdue").length;
+
+    document.getElementById("overdueLoans").innerText =
+        loans.filter(l => (l.Status || "").trim().toLowerCase() === "overdue").length;
 
     const payments = await fetchData("payments");
+
     const todayStr = new Date().toISOString().split("T")[0];
 
-    const todayPayments = payments.filter(p => p.PaymentDate === todayStr);
-    const totalToday = todayPayments.reduce((sum,p)=>sum + Number(p.AmountPaid || 0), 0);
-    document.getElementById("todayCollection").innerText = `₱${totalToday}`;
+    const todayPayments = payments.filter(p => {
+        if(!p.Date) return false;
+        const paymentDate = new Date(p.Date).toISOString().split("T")[0];
+        return paymentDate === todayStr;
+    });
+
+    const totalToday = todayPayments.reduce((sum,p)=>
+        sum + Number(p.Amount || 0), 0);
+
+    document.getElementById("todayCollection").innerText =
+        `₱${totalToday.toFixed(2)}`;
 }
 
-// Update recent loans table
+// ----------------------
+// RECENT LOANS TABLE
+// ----------------------
 async function updateRecentLoans() {
+
     const loans = await fetchData("loans");
     const borrowers = await fetchData("borrowers");
 
     const table = document.getElementById("loanTable");
     table.innerHTML = "";
 
-    loans.sort((a,b)=> new Date(b.ReleaseDate) - new Date(a.ReleaseDate));
+    loans.sort((a,b)=> new Date(b.StartDate) - new Date(a.StartDate));
 
-    loans.forEach(loan => {
+    loans.slice(0,5).forEach(loan => {
+
         const borrower = borrowers.find(b => b.BorrowerID === loan.BorrowerID);
         const borrowerName = borrower ? borrower.FullName : "Unknown";
 
+        const formattedDate = loan.StartDate
+            ? new Date(loan.StartDate).toLocaleDateString("en-US",
+              { year:"numeric", month:"long", day:"numeric" })
+            : "";
+
         const row = `<tr>
             <td>${borrowerName}</td>
-            <td>₱${loan.Amount}</td>
+            <td>₱${Number(loan.Amount).toFixed(2)}</td>
             <td>${loan.Status}</td>
-            <td>${loan.ReleaseDate}</td>
+            <td>${formattedDate}</td>
         </tr>`;
+
         table.innerHTML += row;
     });
 }
 
-// Update charts
+// ----------------------
+// CHARTS
+// ----------------------
 async function updateCharts() {
+
     const loans = await fetchData("loans");
     const payments = await fetchData("payments");
 
     // Loan Status Chart
     const loanStatusCounts = {
-        Active: loans.filter(l => l.Status?.trim().toLowerCase() === "active").length,
-        Paid: loans.filter(l => l.Status?.trim().toLowerCase() === "paid").length,
-        Overdue: loans.filter(l => l.Status?.trim().toLowerCase() === "overdue").length
+        Active: loans.filter(l => (l.Status || "").toLowerCase() === "active").length,
+        Paid: loans.filter(l => (l.Status || "").toLowerCase() === "paid").length,
+        Overdue: loans.filter(l => (l.Status || "").toLowerCase() === "overdue").length
     };
 
     new Chart(document.getElementById("loanStatusChart"), {
         type: 'pie',
         data: {
             labels: ["Active", "Paid", "Overdue"],
-            datasets: [{ data: [loanStatusCounts.Active, loanStatusCounts.Paid, loanStatusCounts.Overdue],
-                         backgroundColor: ["#0d6efd","#198754","#dc3545"] }]
+            datasets: [{
+                data: [
+                    loanStatusCounts.Active,
+                    loanStatusCounts.Paid,
+                    loanStatusCounts.Overdue
+                ],
+                backgroundColor: ["#0d6efd","#198754","#dc3545"]
+            }]
         },
-        options: { responsive:true, plugins:{legend:{position:'bottom'}} }
+        options: {
+            responsive:true,
+            plugins:{legend:{position:'bottom'}}
+        }
     });
 
     // Payments Last 7 Days Chart
@@ -264,26 +302,44 @@ async function updateCharts() {
     }).reverse();
 
     const paymentsPerDay = last7Days.map(d=>{
-        const dateStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
-        const dayPayments = payments.filter(p => p.PaymentDate === dateStr);
-        return dayPayments.reduce((sum,p)=>sum + Number(p.AmountPaid || 0),0);
+        const dateStr = d.toISOString().split("T")[0];
+
+        const dayPayments = payments.filter(p=>{
+            if(!p.Date) return false;
+            const paymentDate = new Date(p.Date).toISOString().split("T")[0];
+            return paymentDate === dateStr;
+        });
+
+        return dayPayments.reduce((sum,p)=>
+            sum + Number(p.Amount || 0),0);
     });
 
     new Chart(document.getElementById("paymentsChart"), {
         type:'bar',
         data:{
             labels:last7Days.map(d=>`${d.getMonth()+1}/${d.getDate()}`),
-            datasets:[{label:"₱ Collected", data:paymentsPerDay, backgroundColor:"#0d6efd"}]
+            datasets:[{
+                label:"₱ Collected",
+                data:paymentsPerDay,
+                backgroundColor:"#0d6efd"
+            }]
         },
-        options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+        options:{
+            responsive:true,
+            plugins:{legend:{display:false}},
+            scales:{y:{beginAtZero:true}}
+        }
     });
 }
 
-// Run everything
+// ----------------------
+// RUN EVERYTHING
+// ----------------------
 updateDashboard();
 updateRecentLoans();
 updateCharts();
 
 </script>
+
 </body>
 </html>
