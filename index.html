@@ -6,6 +6,7 @@
 <title>Microfinance Admin</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <style>
 body {
     background: #f5f7fb;
@@ -45,6 +46,7 @@ body {
 
 <div class="d-flex">
 
+<!-- SIDEBAR -->
 <div class="sidebar p-3">
     <h4 class="text-white">MicroFinance</h4>
     <hr class="text-white">
@@ -57,6 +59,7 @@ body {
     <button id="logoutBtn" class="btn btn-danger mt-3 w-100">Logout</button>
 </div>
 
+<!-- MAIN CONTENT -->
 <div class="main-content flex-grow-1">
     <nav class="navbar navbar-light bg-white shadow-sm px-4">
         <span class="navbar-brand">Admin Dashboard</span>
@@ -64,7 +67,8 @@ body {
 
     <div class="container-fluid mt-4">
 
-        <div class="row g-4 mt-4">
+        <!-- DASHBOARD CARDS -->
+        <div class="row g-4">
             <div class="col-md-3">
                 <div class="card dashboard-card text-white" style="background-color:#0d6efd;">
                     <div class="card-body">
@@ -73,14 +77,16 @@ body {
                     </div>
                 </div>
             </div>
+
             <div class="col-md-3">
                 <div class="card dashboard-card text-white" style="background-color:#ffc107;">
                     <div class="card-body">
                         <h6>Today's Collection</h6>
-                        <h3 id="todayCollection">₱0</h3>
+                        <h3 id="todayCollection">₱0.00</h3>
                     </div>
                 </div>
             </div>
+
             <div class="col-md-3">
                 <div class="card dashboard-card text-white" style="background-color:#198754;">
                     <div class="card-body">
@@ -89,6 +95,7 @@ body {
                     </div>
                 </div>
             </div>
+
             <div class="col-md-3">
                 <div class="card dashboard-card text-white" style="background-color:#dc3545;">
                     <div class="card-body">
@@ -99,6 +106,7 @@ body {
             </div>
         </div>
 
+        <!-- RECENT LOANS -->
         <div class="card mt-4">
             <div class="card-header">Recent Loans</div>
             <div class="card-body">
@@ -120,18 +128,24 @@ body {
 </div>
 </div>
 
+<!-- SCRIPT -->
 <script>
+
+// LOGIN CHECK
 if(localStorage.getItem("loggedIn") !== "true"){
     window.location.href = "login.html";
 }
 
+// LOGOUT
 document.getElementById("logoutBtn").addEventListener("click", () => {
     localStorage.removeItem("loggedIn");
     window.location.href = "login.html";
 });
 
+// GOOGLE APPS SCRIPT API
 const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
+// FETCH FUNCTION
 async function fetchData(action) {
     try {
         const res = await fetch(`${API_URL}?action=${action}`);
@@ -143,40 +157,34 @@ async function fetchData(action) {
     }
 }
 
+// UPDATE DASHBOARD
 async function updateDashboard() {
     const borrowers = await fetchData("borrowers");
     const loans = await fetchData("loans");
     const payments = await fetchData("payments");
 
-    // Active Borrowers
     const activeBorrowers = borrowers.filter(b =>
-        String(b.Status || "").trim().toLowerCase() === "active"
+        String(b.Status || "").toLowerCase().trim() === "active"
     ).length;
 
-    // Total Loans
     const totalLoans = loans.length;
 
-    // ✅ AUTOMATIC OVERDUE DETECTION
     const today = new Date();
+    today.setHours(0,0,0,0);
+
     const overdueLoans = loans.filter(l => {
         if (!l.DueDate) return false;
-
         const dueDate = new Date(l.DueDate);
+        dueDate.setHours(0,0,0,0);
         const status = String(l.Status || "").toLowerCase();
-
         return dueDate < today && status !== "paid";
     }).length;
 
-    // Today's Collection
     const todayStr = new Date().toISOString().split("T")[0];
-    const todayPayments = payments.filter(p => {
-        if (!p.Date) return false;
-        return new Date(p.Date).toISOString().split("T")[0] === todayStr;
-    });
 
-    const totalToday = todayPayments.reduce((sum,p)=>
-        sum + Number(p.AmountPaid || 0),0
-    );
+    const totalToday = payments
+        .filter(p => p.Date && new Date(p.Date).toISOString().split("T")[0] === todayStr)
+        .reduce((sum,p)=> sum + Number(p.AmountPaid || 0),0);
 
     document.getElementById("activeBorrowers").innerText = activeBorrowers;
     document.getElementById("totalLoans").innerText = totalLoans;
@@ -184,6 +192,7 @@ async function updateDashboard() {
     document.getElementById("todayCollection").innerText = `₱${totalToday.toFixed(2)}`;
 }
 
+// UPDATE RECENT LOANS
 async function updateRecentLoans() {
     const loans = await fetchData("loans");
     const borrowers = await fetchData("borrowers");
@@ -191,26 +200,52 @@ async function updateRecentLoans() {
     const table = document.getElementById("loanTable");
     table.innerHTML = "";
 
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
     loans.sort((a,b)=> new Date(b.StartDate) - new Date(a.StartDate));
 
     loans.slice(0,5).forEach(loan => {
+
         const borrower = borrowers.find(b => b.BorrowerID === loan.BorrowerID);
         const borrowerName = borrower ? borrower.FullName : "Unknown";
-        const formattedDate = loan.StartDate ?
-            new Date(loan.StartDate).toLocaleDateString("en-US",
-            {year:"numeric",month:"long",day:"numeric"}) : "";
 
-        table.innerHTML += `<tr>
+        const startDate = loan.StartDate
+            ? new Date(loan.StartDate).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})
+            : "";
+
+        let badge = `<span class="badge bg-warning text-dark">Active</span>`;
+
+        if (String(loan.Status || "").toLowerCase() === "paid") {
+            badge = `<span class="badge bg-success">Paid</span>`;
+        } else if (loan.DueDate) {
+            const dueDate = new Date(loan.DueDate);
+            dueDate.setHours(0,0,0,0);
+            if (dueDate < today) {
+                badge = `<span class="badge bg-danger">Overdue</span>`;
+            }
+        }
+
+        table.innerHTML += `
+        <tr>
             <td>${borrowerName}</td>
             <td>₱${Number(loan.Amount || 0).toFixed(2)}</td>
-            <td>${loan.Status || ""}</td>
-            <td>${formattedDate}</td>
+            <td>${badge}</td>
+            <td>${startDate}</td>
         </tr>`;
     });
 }
 
+// INITIAL LOAD
 updateDashboard();
 updateRecentLoans();
+
+// AUTO REFRESH EVERY 10 SECONDS
+setInterval(() => {
+    updateDashboard();
+    updateRecentLoans();
+}, 10000);
+
 </script>
 
 </body>
