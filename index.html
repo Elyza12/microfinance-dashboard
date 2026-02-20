@@ -45,7 +45,6 @@ body {
 
 <div class="d-flex">
 
-<!-- SIDEBAR -->
 <div class="sidebar p-3">
     <h4 class="text-white">MicroFinance</h4>
     <hr class="text-white">
@@ -58,7 +57,6 @@ body {
     <button id="logoutBtn" class="btn btn-danger mt-3 w-100">Logout</button>
 </div>
 
-<!-- MAIN CONTENT -->
 <div class="main-content flex-grow-1">
     <nav class="navbar navbar-light bg-white shadow-sm px-4">
         <span class="navbar-brand">Admin Dashboard</span>
@@ -66,7 +64,6 @@ body {
 
     <div class="container-fluid mt-4">
 
-        <!-- Dashboard Cards -->
         <div class="row g-4 mt-4">
             <div class="col-md-3">
                 <div class="card dashboard-card text-white" style="background-color:#0d6efd;">
@@ -102,7 +99,6 @@ body {
             </div>
         </div>
 
-        <!-- Recent Loans Table -->
         <div class="card mt-4">
             <div class="card-header">Recent Loans</div>
             <div class="card-body">
@@ -137,40 +133,57 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
 async function fetchData(action) {
-    const res = await fetch(`${API_URL}?action=${action}`);
-    return await res.json();
+    try {
+        const res = await fetch(`${API_URL}?action=${action}`);
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    } catch(err) {
+        console.error("Fetch error:", err);
+        return [];
+    }
 }
 
-// ----------------------
-// DASHBOARD
-// ----------------------
 async function updateDashboard() {
     const borrowers = await fetchData("borrowers");
     const loans = await fetchData("loans");
     const payments = await fetchData("payments");
 
     // Active Borrowers
-    document.getElementById("activeBorrowers").innerText =
-        borrowers.filter(b => String(b.Status || "").trim().toLowerCase() === "active").length;
+    const activeBorrowers = borrowers.filter(b =>
+        String(b.Status || "").trim().toLowerCase() === "active"
+    ).length;
 
-    // Total & Overdue Loans
-    document.getElementById("totalLoans").innerText = loans.length;
-    document.getElementById("overdueLoans").innerText =
-        loans.filter(l => String(l.Status || "").trim().toLowerCase() === "overdue").length;
+    // Total Loans
+    const totalLoans = loans.length;
+
+    // ✅ AUTOMATIC OVERDUE DETECTION
+    const today = new Date();
+    const overdueLoans = loans.filter(l => {
+        if (!l.DueDate) return false;
+
+        const dueDate = new Date(l.DueDate);
+        const status = String(l.Status || "").toLowerCase();
+
+        return dueDate < today && status !== "paid";
+    }).length;
 
     // Today's Collection
     const todayStr = new Date().toISOString().split("T")[0];
-    const todayPayments = payments.filter(p=>{
-        if(!p.Date) return false;
+    const todayPayments = payments.filter(p => {
+        if (!p.Date) return false;
         return new Date(p.Date).toISOString().split("T")[0] === todayStr;
     });
-    const totalToday = todayPayments.reduce((sum,p)=>sum + Number(p.AmountPaid || 0),0);
+
+    const totalToday = todayPayments.reduce((sum,p)=>
+        sum + Number(p.AmountPaid || 0),0
+    );
+
+    document.getElementById("activeBorrowers").innerText = activeBorrowers;
+    document.getElementById("totalLoans").innerText = totalLoans;
+    document.getElementById("overdueLoans").innerText = overdueLoans;
     document.getElementById("todayCollection").innerText = `₱${totalToday.toFixed(2)}`;
 }
 
-// ----------------------
-// RECENT LOANS TABLE
-// ----------------------
 async function updateRecentLoans() {
     const loans = await fetchData("loans");
     const borrowers = await fetchData("borrowers");
@@ -179,22 +192,23 @@ async function updateRecentLoans() {
     table.innerHTML = "";
 
     loans.sort((a,b)=> new Date(b.StartDate) - new Date(a.StartDate));
+
     loans.slice(0,5).forEach(loan => {
         const borrower = borrowers.find(b => b.BorrowerID === loan.BorrowerID);
         const borrowerName = borrower ? borrower.FullName : "Unknown";
-        const formattedDate = loan.StartDate ? new Date(loan.StartDate).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}) : "";
+        const formattedDate = loan.StartDate ?
+            new Date(loan.StartDate).toLocaleDateString("en-US",
+            {year:"numeric",month:"long",day:"numeric"}) : "";
+
         table.innerHTML += `<tr>
             <td>${borrowerName}</td>
-            <td>₱${Number(loan.Amount).toFixed(2)}</td>
-            <td>${loan.Status}</td>
+            <td>₱${Number(loan.Amount || 0).toFixed(2)}</td>
+            <td>${loan.Status || ""}</td>
             <td>${formattedDate}</td>
         </tr>`;
     });
 }
 
-// ----------------------
-// RUN EVERYTHING
-// ----------------------
 updateDashboard();
 updateRecentLoans();
 </script>
