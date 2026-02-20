@@ -130,7 +130,6 @@ body {
 
 <!-- SCRIPT -->
 <script>
-
 // LOGIN CHECK
 if(localStorage.getItem("loggedIn") !== "true"){
     window.location.href = "login.html";
@@ -172,31 +171,28 @@ async function updateDashboard() {
     const today = new Date();
     today.setHours(0,0,0,0);
 
+    // Overdue loans logic
     const overdueLoans = loans.filter(l => {
         if (!l.StartDate) return false;
-
         const status = String(l.Status || "").toLowerCase().trim();
         if (status === "paid" || status === "fully paid") return false;
-
         const startDate = new Date(l.StartDate);
         startDate.setHours(0,0,0,0);
-
-        // 🔥 Add 30 days
         const dueDate = new Date(startDate);
         dueDate.setDate(dueDate.getDate() + 30);
-
         return today > dueDate;
     }).length;
 
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = today.toISOString().split("T")[0];
 
+    // Total collection today (from Payments sheet)
     const totalToday = payments
-    .filter(p => {
-        const paymentDate = p.Date || p.PaymentDate || p.Timestamp; // try multiple possible headers
-        if (!paymentDate) return false;
-        return new Date(paymentDate).toISOString().split("T")[0] === todayStr;
-    })
-    .reduce((sum,p)=> sum + Number(p.AmountPaid || p.Amount || 0),0);
+        .filter(p => {
+            const paymentDate = p.Date || p.PaymentDate || p.Timestamp;
+            if (!paymentDate) return false;
+            return new Date(paymentDate).toISOString().split("T")[0] === todayStr;
+        })
+        .reduce((sum,p)=> sum + Number(p.AmountPaid || p.Amount || 0),0);
 
     document.getElementById("activeBorrowers").innerText = activeBorrowers;
     document.getElementById("totalLoans").innerText = totalLoans;
@@ -208,6 +204,7 @@ async function updateDashboard() {
 async function updateRecentLoans() {
     const loans = await fetchData("loans");
     const borrowers = await fetchData("borrowers");
+    const payments = await fetchData("payments");
 
     const table = document.getElementById("loanTable");
     table.innerHTML = "";
@@ -215,6 +212,7 @@ async function updateRecentLoans() {
     const today = new Date();
     today.setHours(0,0,0,0);
 
+    // Sort loans by newest
     loans.sort((a,b)=> new Date(b.StartDate) - new Date(a.StartDate));
 
     loans.slice(0,5).forEach(loan => {
@@ -225,12 +223,10 @@ async function updateRecentLoans() {
         startDateObj.setHours(0,0,0,0);
 
         const computedDueDate = new Date(startDateObj);
-        
         computedDueDate.setDate(computedDueDate.getDate() + 30);
 
         let badge = `<span class="badge bg-warning text-dark">Active</span>`;
         const status = String(loan.Status || "").toLowerCase().trim();
-
         if (status === "paid" || status === "fully paid") {
             badge = `<span class="badge bg-success">Paid</span>`;
         } else if (today > computedDueDate) {
