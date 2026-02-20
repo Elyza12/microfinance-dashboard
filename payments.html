@@ -33,7 +33,7 @@ body { background:#f5f7fb; font-family:Arial; }
 
 <div class="main-content flex-grow-1">
 <nav class="navbar navbar-light bg-white shadow-sm px-4">
-<span class="navbar-brand">Payments PRO</span>
+<span class="navbar-brand">Payments </span>
 </nav>
 
 <div class="container-fluid mt-4">
@@ -59,6 +59,15 @@ body { background:#f5f7fb; font-family:Arial; }
 </div>
 
 <script>
+    function formatDate(dateString){
+    if(!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+}
 if(localStorage.getItem("loggedIn")!=="true"){ window.location.href="login.html"; }
 
 const API_URL="https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
