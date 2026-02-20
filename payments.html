@@ -4,201 +4,157 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Payments - Microfinance Admin</title>
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body {
-    background: #f5f7fb;
-    font-family: Arial, sans-serif;
-}
-.sidebar {
-    width: 240px;
-    min-height: 100vh;
-    background: #1e293b;
-}
-.sidebar .nav-link {
-    color: #cbd5e1;
-    margin-bottom: 10px;
-}
-.sidebar .nav-link:hover {
-    background: #334155;
-    border-radius: 8px;
-    color: white;
-}
-.sidebar .active {
-    background: #0d6efd;
-    border-radius: 8px;
-    color: white !important;
-}
-.main-content {
-    background: #f1f5f9;
-    min-height: 100vh;
-}
-.card-custom {
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
+body { background:#f5f7fb; font-family:Arial; }
+.sidebar { width:240px; min-height:100vh; background:#1e293b; }
+.sidebar .nav-link { color:#cbd5e1; margin-bottom:10px; }
+.sidebar .nav-link:hover { background:#334155; border-radius:8px; color:white; }
+.sidebar .active { background:#0d6efd; border-radius:8px; color:white!important; }
+.main-content { background:#f1f5f9; min-height:100vh; }
+.card-custom { border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+.info-box { background:white; padding:15px; border-radius:10px; margin-bottom:10px; }
 </style>
 </head>
 <body>
 
 <div class="d-flex">
 
-<!-- SIDEBAR -->
 <div class="sidebar p-3">
-    <h4 class="text-white">MicroFinance</h4>
-    <hr class="text-white">
-    <ul class="nav flex-column">
-        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="borrowers.html">Borrowers</a></li>
-        <li class="nav-item"><a class="nav-link" href="loans.html">Loans</a></li>
-        <li class="nav-item"><a class="nav-link active" href="payments.html">Payments</a></li>
-    </ul>
-    <button id="logoutBtn" class="btn btn-danger mt-3 w-100">Logout</button>
+<h4 class="text-white">MicroFinance</h4>
+<hr class="text-white">
+<ul class="nav flex-column">
+<li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+<li class="nav-item"><a class="nav-link" href="borrowers.html">Borrowers</a></li>
+<li class="nav-item"><a class="nav-link" href="loans.html">Loans</a></li>
+<li class="nav-item"><a class="nav-link active" href="payments.html">Payments</a></li>
+</ul>
+<button id="logoutBtn" class="btn btn-danger mt-3 w-100">Logout</button>
 </div>
 
-<!-- MAIN CONTENT -->
 <div class="main-content flex-grow-1">
-    <nav class="navbar navbar-light bg-white shadow-sm px-4">
-        <span class="navbar-brand">Payments</span>
-    </nav>
+<nav class="navbar navbar-light bg-white shadow-sm px-4">
+<span class="navbar-brand">Payments PRO</span>
+</nav>
 
-    <div class="container-fluid mt-4">
+<div class="container-fluid mt-4">
 
-        <div class="card card-custom p-4">
-            <h5>Record a Payment</h5>
-            <form id="paymentForm">
-                <div class="mb-3">
-                    <label for="borrowerSelect" class="form-label">Select Borrower</label>
-                    <select id="borrowerSelect" class="form-select" required>
-                        <option value="">-- Select Borrower --</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="amountPaid" class="form-label">Amount Paid</label>
-                    <input type="number" id="amountPaid" class="form-control" placeholder="Enter Amount Paid" required>
-                </div>
-                <div class="mb-3">
-                    <label for="paymentDate" class="form-label">Payment Date</label>
-                    <input type="date" id="paymentDate" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-success">Submit Payment</button>
-            </form>
-            <div id="formMsg" class="mt-3"></div>
-        </div>
+<div class="card card-custom p-4">
 
-        <div class="card card-custom mt-4 p-4">
-            <h5>Recent Payments</h5>
-            <table class="table table-striped mt-3">
-                <thead>
-                    <tr>
-                        <th>Borrower</th>
-                        <th>Amount Paid</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody id="paymentsTable"></tbody>
-            </table>
-        </div>
+<h5>Record Payment</h5>
 
-    </div>
+<div class="mb-3">
+<label class="form-label">Select Borrower</label>
+<select id="borrowerSelect" class="form-select"></select>
 </div>
 
+<div id="loanInfo" class="mb-3"></div>
+
+<div class="mb-3">
+<label class="form-label">Amount Paid</label>
+<input type="number" id="amountPaid" class="form-control">
+</div>
+
+<button class="btn btn-success" onclick="submitPayment()">Submit Payment</button>
+
+<div id="msg" class="mt-3"></div>
+
+</div>
+
+</div>
+</div>
 </div>
 
 <script>
-// LOGIN CHECK
+
 if(localStorage.getItem("loggedIn") !== "true"){
     window.location.href = "login.html";
 }
 
-// LOGOUT
-document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("loggedIn");
-    window.location.href = "login.html";
-});
-
 const API_URL = "https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
 
-// FETCH DATA
-async function fetchData(action) {
-    try {
-        const res = await fetch(`${API_URL}?action=${action}`);
-        const data = await res.json();
-        return Array.isArray(data) ? data : [];
-    } catch(err) {
-        console.error("Fetch error:", err);
-        return [];
-    }
+let loansData = [];
+let selectedLoan = null;
+
+async function fetchData(action){
+    const res = await fetch(`${API_URL}?action=${action}`);
+    return await res.json();
 }
 
-// LOAD BORROWERS INTO DROPDOWN
-async function loadBorrowers() {
+async function loadData(){
     const borrowers = await fetchData("borrowers");
-    const select = document.getElementById("borrowerSelect");
-    select.innerHTML = '<option value="">-- Select Borrower --</option>';
+    loansData = await fetchData("loans");
 
-    borrowers.forEach(b => {
-        if (String(b.Status || "").toLowerCase().trim() === "active") {
-            select.innerHTML += `<option value="${b.BorrowerID}">${b.FullName} (${b.BorrowerID})</option>`;
+    const select = document.getElementById("borrowerSelect");
+    select.innerHTML = '<option value="">Select Borrower</option>';
+
+    borrowers.forEach(b=>{
+        if(b.Status?.toLowerCase() === "active"){
+            select.innerHTML += `<option value="${b.BorrowerID}">${b.FullName}</option>`;
         }
     });
 }
 
-// SUBMIT PAYMENT
-document.getElementById("paymentForm").addEventListener("submit", async (e)=>{
-    e.preventDefault();
+document.getElementById("borrowerSelect").addEventListener("change", function(){
+    const borrowerId = this.value;
 
-    const borrowerId = document.getElementById("borrowerSelect").value;
-    const amountPaid = parseFloat(document.getElementById("amountPaid").value);
-    const paymentDate = document.getElementById("paymentDate").value;
+    selectedLoan = loansData.find(l => 
+        l.BorrowerID === borrowerId &&
+        l.Status?.toLowerCase() !== "paid"
+    );
 
-    if(!borrowerId || isNaN(amountPaid) || !paymentDate) return;
-
-    const payload = {
-        BorrowerID: borrowerId,
-        AmountPaid: amountPaid,
-        Date: paymentDate
-    };
-
-    try {
-        const res = await fetch(`${API_URL}?action=addPayment&data=${encodeURIComponent(JSON.stringify(payload))}`);
-        const result = await res.json();
-        document.getElementById("formMsg").innerHTML = `<span class="text-success">Payment recorded successfully!</span>`;
-        document.getElementById("paymentForm").reset();
-        loadRecentPayments();
-    } catch(err) {
-        console.error(err);
-        document.getElementById("formMsg").innerHTML = `<span class="text-danger">Failed to record payment.</span>`;
+    if(!selectedLoan){
+        document.getElementById("loanInfo").innerHTML =
+        `<div class="alert alert-warning">No active loan found.</div>`;
+        return;
     }
+
+    const amount = Number(selectedLoan.Amount);
+    const interest = Number(selectedLoan.Interest);
+    const total = amount + (amount * interest / 100);
+    const paid = Number(selectedLoan.Paid || 0);
+    const remaining = total - paid;
+
+    document.getElementById("loanInfo").innerHTML = `
+    <div class="info-box">
+        <strong>Loan Amount:</strong> ₱${amount.toFixed(2)} <br>
+        <strong>Interest:</strong> ${interest}% <br>
+        <strong>Total Payable:</strong> ₱${total.toFixed(2)} <br>
+        <strong>Already Paid:</strong> ₱${paid.toFixed(2)} <br>
+        <strong>Remaining Balance:</strong> ₱${remaining.toFixed(2)}
+    </div>
+    `;
 });
 
-// LOAD RECENT PAYMENTS
-async function loadRecentPayments() {
-    const payments = await fetchData("payments");
-    const borrowers = await fetchData("borrowers");
+async function submitPayment(){
 
-    const table = document.getElementById("paymentsTable");
-    table.innerHTML = "";
+    if(!selectedLoan){
+        alert("Select borrower first");
+        return;
+    }
 
-    payments.sort((a,b) => new Date(b.Date) - new Date(a.Date));
+    const amountPaid = Number(document.getElementById("amountPaid").value);
+    if(amountPaid <= 0) return;
 
-    payments.slice(0,5).forEach(p => {
-        const borrower = borrowers.find(b=>b.BorrowerID === p.BorrowerID);
-        const borrowerName = borrower ? borrower.FullName : "Unknown";
-        const paymentDate = p.Date ? new Date(p.Date).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}) : "";
-        table.innerHTML += `<tr>
-            <td>${borrowerName}</td>
-            <td>₱${Number(p.AmountPaid || 0).toFixed(2)}</td>
-            <td>${paymentDate}</td>
-        </tr>`;
-    });
+    const payload = {
+        LoanID: selectedLoan.LoanID,
+        BorrowerID: selectedLoan.BorrowerID,
+        AmountPaid: amountPaid,
+        Date: new Date().toISOString()
+    };
+
+    await fetch(`${API_URL}?action=addPayment&data=${encodeURIComponent(JSON.stringify(payload))}`);
+
+    document.getElementById("msg").innerHTML =
+    `<div class="alert alert-success">Payment Recorded</div>`;
+
+    document.getElementById("amountPaid").value = "";
+    loadData();
 }
 
-// INITIAL LOAD
-loadBorrowers();
-loadRecentPayments();
+loadData();
+
 </script>
 
 </body>
