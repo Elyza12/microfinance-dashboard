@@ -149,7 +149,7 @@ async function loadLoansTable(){
         <td>${loan.Interest}</td>
         <td>₱${totalPayable.toFixed(2)}</td>
         <td>₱${remaining.toFixed(2)}</td>
-        <td>${loan.StartDate}</td>
+        <td>${formatDate(loan.StartDate)}</td>
         <td>${loan.DueDate}</td>
         <td>${loan.Status}</td>
         <td>
