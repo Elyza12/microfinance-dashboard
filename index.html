@@ -191,8 +191,12 @@ async function updateDashboard() {
     const todayStr = new Date().toISOString().split("T")[0];
 
     const totalToday = payments
-        .filter(p => p.Date && new Date(p.Date).toISOString().split("T")[0] === todayStr)
-        .reduce((sum,p)=> sum + Number(p.AmountPaid || 0),0);
+    .filter(p => {
+        const paymentDate = p.Date || p.PaymentDate || p.Timestamp; // try multiple possible headers
+        if (!paymentDate) return false;
+        return new Date(paymentDate).toISOString().split("T")[0] === todayStr;
+    })
+    .reduce((sum,p)=> sum + Number(p.AmountPaid || p.Amount || 0),0);
 
     document.getElementById("activeBorrowers").innerText = activeBorrowers;
     document.getElementById("totalLoans").innerText = totalLoans;
@@ -221,6 +225,7 @@ async function updateRecentLoans() {
         startDateObj.setHours(0,0,0,0);
 
         const computedDueDate = new Date(startDateObj);
+        
         computedDueDate.setDate(computedDueDate.getDate() + 30);
 
         let badge = `<span class="badge bg-warning text-dark">Active</span>`;
