@@ -70,8 +70,10 @@ body {
             <h5>Record a Payment</h5>
             <form id="paymentForm">
                 <div class="mb-3">
-                    <label for="borrowerId" class="form-label">Borrower ID</label>
-                    <input type="text" id="borrowerId" class="form-control" placeholder="Enter Borrower ID" required>
+                    <label for="borrowerSelect" class="form-label">Select Borrower</label>
+                    <select id="borrowerSelect" class="form-select" required>
+                        <option value="">-- Select Borrower --</option>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label for="amountPaid" class="form-label">Amount Paid</label>
@@ -131,11 +133,24 @@ async function fetchData(action) {
     }
 }
 
+// LOAD BORROWERS INTO DROPDOWN
+async function loadBorrowers() {
+    const borrowers = await fetchData("borrowers");
+    const select = document.getElementById("borrowerSelect");
+    select.innerHTML = '<option value="">-- Select Borrower --</option>';
+
+    borrowers.forEach(b => {
+        if (String(b.Status || "").toLowerCase().trim() === "active") {
+            select.innerHTML += `<option value="${b.BorrowerID}">${b.FullName} (${b.BorrowerID})</option>`;
+        }
+    });
+}
+
 // SUBMIT PAYMENT
 document.getElementById("paymentForm").addEventListener("submit", async (e)=>{
     e.preventDefault();
 
-    const borrowerId = document.getElementById("borrowerId").value.trim();
+    const borrowerId = document.getElementById("borrowerSelect").value;
     const amountPaid = parseFloat(document.getElementById("amountPaid").value);
     const paymentDate = document.getElementById("paymentDate").value;
 
@@ -182,8 +197,9 @@ async function loadRecentPayments() {
 }
 
 // INITIAL LOAD
+loadBorrowers();
 loadRecentPayments();
-
 </script>
+
 </body>
 </html>
