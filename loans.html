@@ -97,15 +97,18 @@
 </div>
 
 <script>
-    function formatDate(dateString){
+
+function formatDate(dateString){
     if(!dateString) return "";
     const date = new Date(dateString);
+    if(isNaN(date)) return "";
     return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric"
     });
 }
+
 if(localStorage.getItem("loggedIn") !== "true"){
     window.location.href = "login.html";
 }
@@ -137,8 +140,10 @@ async function populateBorrowersDropdown(){
 
 // Load Loans Table
 async function loadLoansTable(){
+
     loansData = await fetchLoans();
     const borrowers = await fetchBorrowers();
+
     let borrowerMap = {};
     borrowers.forEach(b => borrowerMap[b.BorrowerID] = b.FullName);
 
@@ -146,21 +151,28 @@ async function loadLoansTable(){
     table.innerHTML = "";
 
     loansData.forEach(loan=>{
-        const totalPayable = Number(loan.Amount) + Number(loan.Amount) * Number(loan.Interest)/100;
-        const remaining = totalPayable - Number(loan.Paid || 0);
+
+        // 🔥 SAFE NUMBER CONVERSION (NO MORE NaN EVER)
+        const amount = Number(loan.Amount) || 0;
+        const interest = Number(loan.Interest) || 0;
+        const paid = Number(loan.Paid) || 0;
+
+        const totalPayable = amount + (amount * interest / 100);
+        const remaining = totalPayable - paid;
+
         const borrowerName = borrowerMap[loan.BorrowerID] || "Unknown";
 
         table.innerHTML += `
         <tr>
         <td>${loan.LoanID}</td>
         <td>${borrowerName}</td>
-        <td>₱${Number(loan.Amount).toFixed(2)}</td>
-        <td>${loan.Interest}</td>
+        <td>₱${amount.toFixed(2)}</td>
+        <td>${interest}</td>
         <td>₱${totalPayable.toFixed(2)}</td>
         <td>₱${remaining.toFixed(2)}</td>
         <td>${formatDate(loan.StartDate)}</td>
         <td>${formatDate(loan.DueDate)}</td>
-        <td>${loan.Status}</td>
+        <td>${loan.Status || "Active"}</td>
         <td>
             <button class="btn btn-warning btn-sm payLoanBtn"
             data-id="${loan.LoanID}"
@@ -172,8 +184,8 @@ async function loadLoansTable(){
             <button class="btn btn-primary btn-sm editLoanBtn"
             data-id="${loan.LoanID}"
             data-borrower="${loan.BorrowerID}"
-            data-amount="${loan.Amount}"
-            data-interest="${loan.Interest}"
+            data-amount="${amount}"
+            data-interest="${interest}"
             data-start="${loan.StartDate}"
             data-due="${loan.DueDate}"
             data-status="${loan.Status}">
@@ -192,7 +204,7 @@ async function loadLoansTable(){
 const loanModal = new bootstrap.Modal(document.getElementById("loanModal"));
 
 document.addEventListener("click", async (e)=>{
-    // Pay button → redirect to Payments page
+
     if(e.target.classList.contains("payLoanBtn")){
         const loanId = e.target.dataset.id;
         const borrowerId = e.target.dataset.borrowerid;
@@ -201,21 +213,19 @@ document.addEventListener("click", async (e)=>{
         window.location.href = "payments.html";
     }
 
-    // Edit button
     if(e.target.classList.contains("editLoanBtn")){
         await populateBorrowersDropdown();
         loanId.value = e.target.dataset.id;
         loanBorrower.value = e.target.dataset.borrower;
         loanAmount.value = e.target.dataset.amount;
         loanInterest.value = e.target.dataset.interest;
-        loanStart.value = e.target.dataset.start;
-        loanDue.value = e.target.dataset.due;
+        loanStart.value = e.target.dataset.start?.split("T")[0] || "";
+        loanDue.value = e.target.dataset.due?.split("T")[0] || "";
         loanStatus.value = e.target.dataset.status;
         calculateTotalPayable();
         loanModal.show();
     }
 
-    // Delete button
     if(e.target.classList.contains("deleteLoanBtn")){
         if(confirm("Delete loan?")){
             await fetch(`${API_URL}?action=deleteLoan&id=${e.target.dataset.id}`);
@@ -237,13 +247,16 @@ loanInterest.addEventListener("input", calculateTotalPayable);
 // Loan form submit
 loanForm.addEventListener("submit", async e=>{
     e.preventDefault();
+
     const id = loanId.value;
     let url;
+
     if(id){
         url = `${API_URL}?action=updateLoan&id=${id}&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
     } else {
-        url = `${API_URL}?action=addLoan&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=${loanStatus.value}`;
+        url = `${API_URL}?action=addLoan&borrower=${loanBorrower.value}&amount=${loanAmount.value}&interest=${loanInterest.value}&start=${loanStart.value}&due=${loanDue.value}&status=Active`;
     }
+
     await fetch(url);
     loanModal.hide();
     loadLoansTable();
