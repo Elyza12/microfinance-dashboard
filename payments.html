@@ -59,84 +59,45 @@ body { background:#f5f7fb; font-family:Arial; }
 </div>
 
 <script>
-    function formatDate(dateString){
+
+function formatDate(dateString){
     if(!dateString) return "";
     const date = new Date(dateString);
+    if(isNaN(date)) return "";
     return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric"
     });
 }
-if(localStorage.getItem("loggedIn")!=="true"){ window.location.href="login.html"; }
 
-const API_URL="https://script.google.com/macros/s/AKfycbzJPQZw9vc81-X2GzYKUB44tk7q7IJQJG7lfmVG8mAnjcBOED0Jn700WmH13-Zv2ZJTDQ/exec";
+async function loadLoanDetails(){
 
-let loansData = [];
-let selectedLoan = null;
+    const loanId = localStorage.getItem("selectedLoanId");
+    if(!loanId) return;
 
-async function fetchData(action){ const res=await fetch(`${API_URL}?action=${action}`); return await res.json(); }
+    const res = await fetch(`${API_URL}?action=loans`);
+    const loans = await res.json();
 
-async function loadData(){
-    const borrowers = await fetchData("borrowers");
-    loansData = await fetchData("loans");
+    const loan = loans.find(l => l.LoanID === loanId);
+    if(!loan) return;
 
-    const select = document.getElementById("borrowerSelect");
-    select.innerHTML = '<option value="">Select Borrower</option>';
+    // 🔥 SAFE NUMBER HANDLING (NO NaN EVER)
+    const amount = Number(loan.Amount) || 0;
+    const interest = Number(loan.Interest) || 0;
+    const paid = Number(loan.Paid) || 0;
 
-    borrowers.forEach(b=>{
-        if(b.Status?.toLowerCase()==="active"){
-            select.innerHTML += `<option value="${b.BorrowerID}">${b.FullName}</option>`;
-        }
-    });
+    const totalPayable = amount + (amount * interest / 100);
+    const remaining = totalPayable - paid;
 
-    // Preselect loan if redirected from Loans page
-    const preLoanId = localStorage.getItem("selectedLoanId");
-    const preBorrowerId = localStorage.getItem("selectedBorrowerId");
-    if(preBorrowerId){
-        select.value = preBorrowerId;
-        select.dispatchEvent(new Event('change'));
-        localStorage.removeItem("selectedLoanId");
-        localStorage.removeItem("selectedBorrowerId");
-    }
+    document.getElementById("loanAmount").innerText = `₱${amount.toFixed(2)}`;
+    document.getElementById("loanInterest").innerText = `${interest}%`;
+    document.getElementById("totalPayable").innerText = `₱${totalPayable.toFixed(2)}`;
+    document.getElementById("alreadyPaid").innerText = `₱${paid.toFixed(2)}`;
+    document.getElementById("remainingBalance").innerText = `₱${remaining.toFixed(2)}`;
+    document.getElementById("loanStart").innerText = formatDate(loan.StartDate);
+    document.getElementById("loanDue").innerText = formatDate(loan.DueDate);
 }
-
-document.getElementById("borrowerSelect").addEventListener("change", function(){
-    const borrowerId=this.value;
-    selectedLoan = loansData.find(l=>l.BorrowerID===borrowerId && l.Status?.toLowerCase()!=="paid");
-    if(!selectedLoan){
-        document.getElementById("loanInfo").innerHTML=`<div class="alert alert-warning">No active loan found.</div>`;
-        return;
-    }
-    const amount = Number(selectedLoan.Amount);
-    const interest = Number(selectedLoan.Interest);
-    const total = amount + amount*interest/100;
-    const paid = Number(selectedLoan.Paid || 0);
-    const remaining = total - paid;
-    document.getElementById("loanInfo").innerHTML = `
-        <div class="info-box">
-        <strong>Loan Amount:</strong> ₱${amount.toFixed(2)} <br>
-        <strong>Interest:</strong> ${interest}% <br>
-        <strong>Total Payable:</strong> ₱${total.toFixed(2)} <br>
-        <strong>Already Paid:</strong> ₱${paid.toFixed(2)} <br>
-        <strong>Remaining Balance:</strong> ₱${remaining.toFixed(2)}
-        </div>`;
-});
-
-async function submitPayment(){
-    if(!selectedLoan){ alert("Select borrower first"); return; }
-    const amountPaid = Number(document.getElementById("amountPaid").value);
-    if(amountPaid <=0){ alert("Invalid amount"); return; }
-
-    // Add payment and update loan Paid/Status via API
-    await fetch(`${API_URL}?action=makePayment&id=${selectedLoan.LoanID}&amount=${amountPaid}`);
-
-    document.getElementById("msg").innerHTML=`<div class="alert alert-success">Payment Recorded</div>`;
-    document.getElementById("amountPaid").value="";
-    loadData();
-}
-
-loadData();
 
 </script>
 </body>
