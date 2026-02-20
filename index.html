@@ -173,11 +173,19 @@ async function updateDashboard() {
     today.setHours(0,0,0,0);
 
     const overdueLoans = loans.filter(l => {
-        if (!l.DueDate) return false;
-        const dueDate = new Date(l.DueDate);
-        dueDate.setHours(0,0,0,0);
-        const status = String(l.Status || "").toLowerCase();
-        return dueDate < today && status !== "paid";
+        if (!l.StartDate) return false;
+
+        const status = String(l.Status || "").toLowerCase().trim();
+        if (status === "paid" || status === "fully paid") return false;
+
+        const startDate = new Date(l.StartDate);
+        startDate.setHours(0,0,0,0);
+
+        // 🔥 Add 30 days
+        const dueDate = new Date(startDate);
+        dueDate.setDate(dueDate.getDate() + 30);
+
+        return today > dueDate;
     }).length;
 
     const todayStr = new Date().toISOString().split("T")[0];
@@ -206,32 +214,32 @@ async function updateRecentLoans() {
     loans.sort((a,b)=> new Date(b.StartDate) - new Date(a.StartDate));
 
     loans.slice(0,5).forEach(loan => {
-
         const borrower = borrowers.find(b => b.BorrowerID === loan.BorrowerID);
         const borrowerName = borrower ? borrower.FullName : "Unknown";
 
-        const startDate = loan.StartDate
-            ? new Date(loan.StartDate).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})
-            : "";
+        const startDateObj = new Date(loan.StartDate);
+        startDateObj.setHours(0,0,0,0);
+
+        const computedDueDate = new Date(startDateObj);
+        computedDueDate.setDate(computedDueDate.getDate() + 30);
 
         let badge = `<span class="badge bg-warning text-dark">Active</span>`;
+        const status = String(loan.Status || "").toLowerCase().trim();
 
-        if (String(loan.Status || "").toLowerCase() === "paid") {
+        if (status === "paid" || status === "fully paid") {
             badge = `<span class="badge bg-success">Paid</span>`;
-        } else if (loan.DueDate) {
-            const dueDate = new Date(loan.DueDate);
-            dueDate.setHours(0,0,0,0);
-            if (dueDate < today) {
-                badge = `<span class="badge bg-danger">Overdue</span>`;
-            }
+        } else if (today > computedDueDate) {
+            badge = `<span class="badge bg-danger">Overdue</span>`;
         }
+
+        const startDateStr = startDateObj.toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
 
         table.innerHTML += `
         <tr>
             <td>${borrowerName}</td>
             <td>₱${Number(loan.Amount || 0).toFixed(2)}</td>
             <td>${badge}</td>
-            <td>${startDate}</td>
+            <td>${startDateStr}</td>
         </tr>`;
     });
 }
