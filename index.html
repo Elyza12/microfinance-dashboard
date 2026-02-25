@@ -2,6 +2,14 @@
 <html>
 <head>
   <base target="_top">
+  <style>
+    body { font-family: Arial; }
+    button { padding:6px 12px; margin:4px; }
+    table { border-collapse: collapse; width:100%; margin-top:10px;}
+    th, td { border:1px solid #ccc; padding:8px; text-align:center;}
+    th { background:#f2f2f2; }
+    .overdue { background:#ffcccc; }
+  </style>
 </head>
 <body>
 
@@ -9,23 +17,31 @@
 
 <button onclick="loadBorrowers()">Borrowers</button>
 <button onclick="loadLoans()">Loans</button>
+<button onclick="loadPayments()">Payments</button>
 
 <div id="content"></div>
 
 <script>
+
+/* ================= BORROWERS ================= */
+
 function loadBorrowers(){
   google.script.run.withSuccessHandler(function(data){
     let html = "<h3>Borrowers</h3>";
-    html += "<button onclick='addBorrowerForm()'>Add Borrower</button><br><br>";
-    html += "<table border=1><tr><th>Name</th><th>Phone</th><th>Action</th></tr>";
+    html += `<button onclick="showAddBorrower()">Add Borrower</button>`;
+    html += "<table><tr><th>Name</th><th>Phone</th><th>Address</th><th>Status</th><th>Action</th></tr>";
 
     for(let i=1;i<data.length;i++){
       html += `<tr>
       <td>${data[i][1]}</td>
       <td>${data[i][2]}</td>
+      <td>${data[i][3]}</td>
+      <td>${data[i][4]}</td>
       <td>
-        <button onclick="editBorrower('${data[i][0]}','${data[i][1]}','${data[i][2]}','${data[i][3]}')">Edit</button>
-      </td></tr>`;
+        <button onclick="showEditBorrower('${data[i][0]}','${data[i][1]}','${data[i][2]}','${data[i][3]}')">Edit</button>
+        <button onclick="showLoanForm('${data[i][0]}','${data[i][1]}')">Loan</button>
+      </td>
+      </tr>`;
     }
 
     html += "</table>";
@@ -33,18 +49,70 @@ function loadBorrowers(){
   }).getBorrowers();
 }
 
+function showAddBorrower(){
+  document.getElementById("content").innerHTML = `
+    <h3>Add Borrower</h3>
+    <input id="bname" placeholder="Full Name"><br><br>
+    <input id="bphone" placeholder="Phone"><br><br>
+    <input id="baddress" placeholder="Address"><br><br>
+    <button onclick="saveBorrower()">Save</button>
+  `;
+}
+
+function saveBorrower(){
+  const data = {
+    name: bname.value,
+    phone: bphone.value,
+    address: baddress.value
+  };
+
+  google.script.run.withSuccessHandler(loadBorrowers).addBorrower(data);
+}
+
+function showEditBorrower(id,name,phone,address){
+  document.getElementById("content").innerHTML = `
+    <h3>Edit Borrower</h3>
+    <input type="hidden" id="bid" value="${id}">
+    <input id="bname" value="${name}"><br><br>
+    <input id="bphone" value="${phone}"><br><br>
+    <input id="baddress" value="${address}"><br><br>
+    <button onclick="updateBorrower()">Update</button>
+  `;
+}
+
+function updateBorrower(){
+  const data = {
+    id: bid.value,
+    name: bname.value,
+    phone: bphone.value,
+    address: baddress.value
+  };
+
+  google.script.run.withSuccessHandler(loadBorrowers).updateBorrower(data);
+}
+
+/* ================= LOANS ================= */
+
 function loadLoans(){
   google.script.run.withSuccessHandler(function(data){
     let html = "<h3>Loans</h3>";
-    html += "<table border=1><tr><th>Borrower</th><th>Total</th><th>Balance</th><th>Due Date</th><th>Status</th></tr>";
+    html += "<table><tr><th>Borrower</th><th>Total</th><th>Balance</th><th>Due Date</th><th>Status</th><th>Action</th></tr>";
+
+    const today = new Date();
 
     for(let i=1;i<data.length;i++){
-      html += `<tr>
+      const due = new Date(data[i][8]);
+      const isOverdue = due < today && data[i][9] == "Ongoing";
+
+      html += `<tr class="${isOverdue ? 'overdue':''}">
       <td>${data[i][2]}</td>
       <td>${data[i][6]}</td>
       <td>${data[i][10]}</td>
-      <td>${new Date(data[i][8]).toLocaleDateString()}</td>
+      <td>${due.toLocaleDateString()}</td>
       <td>${data[i][9]}</td>
+      <td>
+        <button onclick="showPaymentForm('${data[i][0]}','${data[i][1]}','${data[i][2]}')">Pay</button>
+      </td>
       </tr>`;
     }
 
@@ -52,6 +120,71 @@ function loadLoans(){
     document.getElementById("content").innerHTML = html;
   }).getLoans();
 }
+
+function showLoanForm(bid,bname){
+  document.getElementById("content").innerHTML = `
+    <h3>Release Loan - ${bname}</h3>
+    <input id="principal" placeholder="Principal Amount"><br><br>
+    <input id="interest" placeholder="Interest %"><br><br>
+    <input id="term" placeholder="Term (days)"><br><br>
+    <input type="date" id="startDate"><br><br>
+    <button onclick="saveLoan('${bid}','${bname}')">Release Loan</button>
+  `;
+}
+
+function saveLoan(bid,bname){
+  const data = {
+    borrowerId: bid,
+    borrowerName: bname,
+    principal: principal.value,
+    interest: interest.value,
+    term: term.value,
+    startDate: startDate.value
+  };
+
+  google.script.run.withSuccessHandler(loadLoans).addLoan(data);
+}
+
+/* ================= PAYMENTS ================= */
+
+function showPaymentForm(loanId, borrowerId, borrowerName){
+  document.getElementById("content").innerHTML = `
+    <h3>Post Payment - ${borrowerName}</h3>
+    <input id="amount" placeholder="Payment Amount"><br><br>
+    <button onclick="savePayment('${loanId}','${borrowerId}','${borrowerName}')">Submit Payment</button>
+  `;
+}
+
+function savePayment(loanId, borrowerId, borrowerName){
+  const data = {
+    loanId: loanId,
+    borrowerId: borrowerId,
+    borrowerName: borrowerName,
+    amount: amount.value
+  };
+
+  google.script.run.withSuccessHandler(loadLoans).addPayment(data);
+}
+
+function loadPayments(){
+  google.script.run.withSuccessHandler(function(data){
+    let html = "<h3>Payments</h3>";
+    html += "<table><tr><th>Borrower</th><th>Loan ID</th><th>Amount</th><th>Date</th></tr>";
+
+    for(let i=1;i<data.length;i++){
+      html += `<tr>
+      <td>${data[i][3]}</td>
+      <td>${data[i][1]}</td>
+      <td>${data[i][4]}</td>
+      <td>${new Date(data[i][5]).toLocaleDateString()}</td>
+      </tr>`;
+    }
+
+    html += "</table>";
+    document.getElementById("content").innerHTML = html;
+  }).getSheetData("Payments");
+}
+
 </script>
 
 </body>
