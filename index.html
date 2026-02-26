@@ -3,187 +3,267 @@
 <head>
   <base target="_top">
   <style>
-    body { font-family: Arial; }
-    button { padding:6px 12px; margin:4px; }
-    table { border-collapse: collapse; width:100%; margin-top:10px;}
-    th, td { border:1px solid #ccc; padding:8px; text-align:center;}
-    th { background:#f2f2f2; }
-    .overdue { background:#ffcccc; }
+    body {
+      margin:0;
+      font-family: Arial, sans-serif;
+      background:#f4f6f9;
+    }
+
+    .layout {
+      display:flex;
+      height:100vh;
+    }
+
+    .sidebar {
+      width:220px;
+      background:#1f2937;
+      color:white;
+      padding:20px;
+    }
+
+    .sidebar h2 {
+      font-size:18px;
+      margin-bottom:30px;
+    }
+
+    .sidebar button {
+      width:100%;
+      padding:10px;
+      margin-bottom:10px;
+      background:#374151;
+      border:none;
+      color:white;
+      cursor:pointer;
+      border-radius:6px;
+    }
+
+    .sidebar button:hover {
+      background:#4b5563;
+    }
+
+    .main {
+      flex:1;
+      padding:20px;
+      overflow:auto;
+    }
+
+    .header {
+      font-size:22px;
+      font-weight:bold;
+      margin-bottom:20px;
+    }
+
+    .card {
+      background:white;
+      padding:20px;
+      border-radius:10px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom:20px;
+    }
+
+    table {
+      width:100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding:10px;
+      border-bottom:1px solid #ddd;
+      text-align:left;
+    }
+
+    th {
+      background:#f3f4f6;
+    }
+
+    .btn {
+      padding:6px 10px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    .btn-primary { background:#2563eb; color:white; }
+    .btn-success { background:#16a34a; color:white; }
+    .btn-danger { background:#dc2626; color:white; }
+    .btn-warning { background:#f59e0b; color:white; }
+
+    .overdue {
+      background:#fee2e2;
+    }
+
+    input {
+      padding:8px;
+      margin-bottom:10px;
+      width:100%;
+      border:1px solid #ccc;
+      border-radius:5px;
+    }
   </style>
 </head>
+
 <body>
 
-<h2>Microfinance Dashboard</h2>
+<div class="layout">
 
-<button onclick="loadBorrowers()">Borrowers</button>
-<button onclick="loadLoans()">Loans</button>
-<button onclick="loadPayments()">Payments</button>
+  <div class="sidebar">
+    <h2>MicroFinance</h2>
+    <button onclick="loadDashboard()">Dashboard</button>
+    <button onclick="loadBorrowers()">Borrowers</button>
+    <button onclick="loadLoans()">Loans</button>
+    <button onclick="loadPayments()">Payments</button>
+  </div>
 
-<div id="content"></div>
+  <div class="main">
+    <div class="header" id="pageTitle">Dashboard</div>
+    <div id="content"></div>
+  </div>
+
+</div>
 
 <script>
+
+/* ================= DASHBOARD ================= */
+
+function loadDashboard(){
+  document.getElementById("pageTitle").innerText = "Dashboard";
+
+  google.script.run.withSuccessHandler(function(loans){
+    let active = 0;
+    let totalCapital = 0;
+    let overdue = 0;
+    const today = new Date();
+
+    for(let i=1;i<loans.length;i++){
+      if(loans[i][9] == "Ongoing"){
+        active++;
+        totalCapital += Number(loans[i][10]);
+
+        if(new Date(loans[i][8]) < today){
+          overdue++;
+        }
+      }
+    }
+
+    document.getElementById("content").innerHTML = `
+      <div class="card">
+        <h3>Active Loans: ${active}</h3>
+      </div>
+      <div class="card">
+        <h3>Total Outstanding Balance: ₱ ${totalCapital}</h3>
+      </div>
+      <div class="card">
+        <h3>Overdue Loans: ${overdue}</h3>
+      </div>
+    `;
+  }).getLoans();
+}
 
 /* ================= BORROWERS ================= */
 
 function loadBorrowers(){
+  document.getElementById("pageTitle").innerText = "Borrowers";
+
   google.script.run.withSuccessHandler(function(data){
-    let html = "<h3>Borrowers</h3>";
-    html += `<button onclick="showAddBorrower()">Add Borrower</button>`;
-    html += "<table><tr><th>Name</th><th>Phone</th><th>Address</th><th>Status</th><th>Action</th></tr>";
+    let html = `
+      <div class="card">
+        <button class="btn btn-primary" onclick="showAddBorrower()">Add Borrower</button>
+        <br><br>
+        <table>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Address</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>`;
 
     for(let i=1;i<data.length;i++){
-      html += `<tr>
-      <td>${data[i][1]}</td>
-      <td>${data[i][2]}</td>
-      <td>${data[i][3]}</td>
-      <td>${data[i][4]}</td>
-      <td>
-        <button onclick="showEditBorrower('${data[i][0]}','${data[i][1]}','${data[i][2]}','${data[i][3]}')">Edit</button>
-        <button onclick="showLoanForm('${data[i][0]}','${data[i][1]}')">Loan</button>
-      </td>
-      </tr>`;
+      html += `
+        <tr>
+          <td>${data[i][1]}</td>
+          <td>${data[i][2]}</td>
+          <td>${data[i][3]}</td>
+          <td>${data[i][4]}</td>
+          <td>
+            <button class="btn btn-warning"
+            onclick="showLoanForm('${data[i][0]}','${data[i][1]}')">Loan</button>
+          </td>
+        </tr>`;
     }
 
-    html += "</table>";
+    html += "</table></div>";
     document.getElementById("content").innerHTML = html;
   }).getBorrowers();
-}
-
-function showAddBorrower(){
-  document.getElementById("content").innerHTML = `
-    <h3>Add Borrower</h3>
-    <input id="bname" placeholder="Full Name"><br><br>
-    <input id="bphone" placeholder="Phone"><br><br>
-    <input id="baddress" placeholder="Address"><br><br>
-    <button onclick="saveBorrower()">Save</button>
-  `;
-}
-
-function saveBorrower(){
-  const data = {
-    name: bname.value,
-    phone: bphone.value,
-    address: baddress.value
-  };
-
-  google.script.run.withSuccessHandler(loadBorrowers).addBorrower(data);
-}
-
-function showEditBorrower(id,name,phone,address){
-  document.getElementById("content").innerHTML = `
-    <h3>Edit Borrower</h3>
-    <input type="hidden" id="bid" value="${id}">
-    <input id="bname" value="${name}"><br><br>
-    <input id="bphone" value="${phone}"><br><br>
-    <input id="baddress" value="${address}"><br><br>
-    <button onclick="updateBorrower()">Update</button>
-  `;
-}
-
-function updateBorrower(){
-  const data = {
-    id: bid.value,
-    name: bname.value,
-    phone: bphone.value,
-    address: baddress.value
-  };
-
-  google.script.run.withSuccessHandler(loadBorrowers).updateBorrower(data);
 }
 
 /* ================= LOANS ================= */
 
 function loadLoans(){
+  document.getElementById("pageTitle").innerText = "Loans";
+
   google.script.run.withSuccessHandler(function(data){
-    let html = "<h3>Loans</h3>";
-    html += "<table><tr><th>Borrower</th><th>Total</th><th>Balance</th><th>Due Date</th><th>Status</th><th>Action</th></tr>";
+    let html = `<div class="card"><table>
+      <tr>
+        <th>Borrower</th>
+        <th>Total</th>
+        <th>Balance</th>
+        <th>Due Date</th>
+        <th>Status</th>
+      </tr>`;
 
     const today = new Date();
 
     for(let i=1;i<data.length;i++){
       const due = new Date(data[i][8]);
-      const isOverdue = due < today && data[i][9] == "Ongoing";
+      const overdue = due < today && data[i][9] == "Ongoing";
 
-      html += `<tr class="${isOverdue ? 'overdue':''}">
-      <td>${data[i][2]}</td>
-      <td>${data[i][6]}</td>
-      <td>${data[i][10]}</td>
-      <td>${due.toLocaleDateString()}</td>
-      <td>${data[i][9]}</td>
-      <td>
-        <button onclick="showPaymentForm('${data[i][0]}','${data[i][1]}','${data[i][2]}')">Pay</button>
-      </td>
-      </tr>`;
+      html += `
+        <tr class="${overdue ? 'overdue' : ''}">
+          <td>${data[i][2]}</td>
+          <td>₱ ${data[i][6]}</td>
+          <td>₱ ${data[i][10]}</td>
+          <td>${due.toLocaleDateString()}</td>
+          <td>${data[i][9]}</td>
+        </tr>`;
     }
 
-    html += "</table>";
+    html += "</table></div>";
     document.getElementById("content").innerHTML = html;
   }).getLoans();
 }
 
-function showLoanForm(bid,bname){
-  document.getElementById("content").innerHTML = `
-    <h3>Release Loan - ${bname}</h3>
-    <input id="principal" placeholder="Principal Amount"><br><br>
-    <input id="interest" placeholder="Interest %"><br><br>
-    <input id="term" placeholder="Term (days)"><br><br>
-    <input type="date" id="startDate"><br><br>
-    <button onclick="saveLoan('${bid}','${bname}')">Release Loan</button>
-  `;
-}
-
-function saveLoan(bid,bname){
-  const data = {
-    borrowerId: bid,
-    borrowerName: bname,
-    principal: principal.value,
-    interest: interest.value,
-    term: term.value,
-    startDate: startDate.value
-  };
-
-  google.script.run.withSuccessHandler(loadLoans).addLoan(data);
-}
-
 /* ================= PAYMENTS ================= */
 
-function showPaymentForm(loanId, borrowerId, borrowerName){
-  document.getElementById("content").innerHTML = `
-    <h3>Post Payment - ${borrowerName}</h3>
-    <input id="amount" placeholder="Payment Amount"><br><br>
-    <button onclick="savePayment('${loanId}','${borrowerId}','${borrowerName}')">Submit Payment</button>
-  `;
-}
-
-function savePayment(loanId, borrowerId, borrowerName){
-  const data = {
-    loanId: loanId,
-    borrowerId: borrowerId,
-    borrowerName: borrowerName,
-    amount: amount.value
-  };
-
-  google.script.run.withSuccessHandler(loadLoans).addPayment(data);
-}
-
 function loadPayments(){
+  document.getElementById("pageTitle").innerText = "Payments";
+
   google.script.run.withSuccessHandler(function(data){
-    let html = "<h3>Payments</h3>";
-    html += "<table><tr><th>Borrower</th><th>Loan ID</th><th>Amount</th><th>Date</th></tr>";
+    let html = `<div class="card"><table>
+      <tr>
+        <th>Borrower</th>
+        <th>Loan ID</th>
+        <th>Amount</th>
+        <th>Date</th>
+      </tr>`;
 
     for(let i=1;i<data.length;i++){
-      html += `<tr>
-      <td>${data[i][3]}</td>
-      <td>${data[i][1]}</td>
-      <td>${data[i][4]}</td>
-      <td>${new Date(data[i][5]).toLocaleDateString()}</td>
-      </tr>`;
+      html += `
+        <tr>
+          <td>${data[i][3]}</td>
+          <td>${data[i][1]}</td>
+          <td>₱ ${data[i][4]}</td>
+          <td>${new Date(data[i][5]).toLocaleDateString()}</td>
+        </tr>`;
     }
 
-    html += "</table>";
+    html += "</table></div>";
     document.getElementById("content").innerHTML = html;
   }).getSheetData("Payments");
 }
+
+/* LOAD DASHBOARD BY DEFAULT */
+loadDashboard();
 
 </script>
 
