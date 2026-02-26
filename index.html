@@ -2,103 +2,128 @@
 <html>
 <head>
   <base target="_top">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
+    body{
       margin:0;
-      font-family: Arial, sans-serif;
-      background:#f4f6f9;
+      font-family:Segoe UI, Arial;
+      background:#0f172a;
+      color:white;
     }
 
-    .layout {
+    .layout{
       display:flex;
       height:100vh;
     }
 
-    .sidebar {
-      width:220px;
+    .sidebar{
+      width:240px;
+      background:#111827;
+      padding:20px;
+    }
+
+    .sidebar h2{
+      margin-bottom:30px;
+      font-size:20px;
+    }
+
+    .sidebar button{
+      width:100%;
+      padding:12px;
+      margin-bottom:10px;
+      border:none;
+      border-radius:8px;
       background:#1f2937;
       color:white;
-      padding:20px;
-    }
-
-    .sidebar h2 {
-      font-size:18px;
-      margin-bottom:30px;
-    }
-
-    .sidebar button {
-      width:100%;
-      padding:10px;
-      margin-bottom:10px;
-      background:#374151;
-      border:none;
-      color:white;
       cursor:pointer;
-      border-radius:6px;
     }
 
-    .sidebar button:hover {
-      background:#4b5563;
+    .sidebar button:hover{
+      background:#2563eb;
     }
 
-    .main {
+    .main{
       flex:1;
-      padding:20px;
+      padding:25px;
       overflow:auto;
     }
 
-    .header {
-      font-size:22px;
-      font-weight:bold;
-      margin-bottom:20px;
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:15px;
+      margin-bottom:25px;
     }
 
-    .card {
-      background:white;
+    .card{
+      background:#1e293b;
       padding:20px;
-      border-radius:10px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom:20px;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.4);
     }
 
-    table {
+    table{
       width:100%;
-      border-collapse: collapse;
+      border-collapse:collapse;
+      margin-top:15px;
     }
 
-    th, td {
+    th, td{
       padding:10px;
-      border-bottom:1px solid #ddd;
+      border-bottom:1px solid #334155;
+    }
+
+    th{
       text-align:left;
+      background:#1e293b;
     }
 
-    th {
-      background:#f3f4f6;
-    }
-
-    .btn {
+    .btn{
       padding:6px 10px;
       border:none;
-      border-radius:5px;
+      border-radius:6px;
       cursor:pointer;
+      color:white;
     }
 
-    .btn-primary { background:#2563eb; color:white; }
-    .btn-success { background:#16a34a; color:white; }
-    .btn-danger { background:#dc2626; color:white; }
-    .btn-warning { background:#f59e0b; color:white; }
+    .btn-primary{background:#2563eb;}
+    .btn-success{background:#16a34a;}
+    .btn-danger{background:#dc2626;}
+    .btn-warning{background:#f59e0b;}
 
-    .overdue {
-      background:#fee2e2;
+    .overdue{
+      background:#7f1d1d;
     }
 
-    input {
+    .modal{
+      display:none;
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      background:rgba(0,0,0,0.6);
+      justify-content:center;
+      align-items:center;
+    }
+
+    .modal-content{
+      background:#1e293b;
+      padding:25px;
+      border-radius:10px;
+      width:350px;
+    }
+
+    input{
+      width:100%;
       padding:8px;
       margin-bottom:10px;
-      width:100%;
-      border:1px solid #ccc;
-      border-radius:5px;
+      border-radius:6px;
+      border:1px solid #334155;
+      background:#0f172a;
+      color:white;
     }
+
   </style>
 </head>
 
@@ -107,7 +132,7 @@
 <div class="layout">
 
   <div class="sidebar">
-    <h2>MicroFinance</h2>
+    <h2>Enterprise MicroFinance</h2>
     <button onclick="loadDashboard()">Dashboard</button>
     <button onclick="loadBorrowers()">Borrowers</button>
     <button onclick="loadLoans()">Loans</button>
@@ -115,10 +140,14 @@
   </div>
 
   <div class="main">
-    <div class="header" id="pageTitle">Dashboard</div>
     <div id="content"></div>
   </div>
 
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content" id="modalContent"></div>
 </div>
 
 <script>
@@ -126,143 +155,161 @@
 /* ================= DASHBOARD ================= */
 
 function loadDashboard(){
-  document.getElementById("pageTitle").innerText = "Dashboard";
-
   google.script.run.withSuccessHandler(function(loans){
-    let active = 0;
-    let totalCapital = 0;
-    let overdue = 0;
-    const today = new Date();
+    let active=0, capital=0, overdue=0;
+    const today=new Date();
 
     for(let i=1;i<loans.length;i++){
-      if(loans[i][9] == "Ongoing"){
+      if(loans[i][9]=="Ongoing"){
         active++;
-        totalCapital += Number(loans[i][10]);
-
-        if(new Date(loans[i][8]) < today){
-          overdue++;
-        }
+        capital+=Number(loans[i][10]);
+        if(new Date(loans[i][8])<today){overdue++;}
       }
     }
 
-    document.getElementById("content").innerHTML = `
-      <div class="card">
-        <h3>Active Loans: ${active}</h3>
+    document.getElementById("content").innerHTML=`
+      <div class="cards">
+        <div class="card"><h3>Active Loans</h3><h2>${active}</h2></div>
+        <div class="card"><h3>Total Outstanding</h3><h2>₱ ${capital}</h2></div>
+        <div class="card"><h3>Overdue Loans</h3><h2>${overdue}</h2></div>
       </div>
       <div class="card">
-        <h3>Total Outstanding Balance: ₱ ${totalCapital}</h3>
-      </div>
-      <div class="card">
-        <h3>Overdue Loans: ${overdue}</h3>
+        <canvas id="loanChart"></canvas>
       </div>
     `;
+
+    const ctx=document.getElementById("loanChart");
+    new Chart(ctx,{
+      type:'doughnut',
+      data:{
+        labels:['Active','Overdue'],
+        datasets:[{
+          data:[active,overdue]
+        }]
+      }
+    });
+
   }).getLoans();
 }
 
 /* ================= BORROWERS ================= */
 
 function loadBorrowers(){
-  document.getElementById("pageTitle").innerText = "Borrowers";
-
   google.script.run.withSuccessHandler(function(data){
-    let html = `
-      <div class="card">
-        <button class="btn btn-primary" onclick="showAddBorrower()">Add Borrower</button>
-        <br><br>
-        <table>
-        <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Address</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>`;
+    let html=`<div class="card">
+      <button class="btn btn-primary" onclick="showAddBorrower()">+ Add Borrower</button>
+      <table>
+      <tr><th>Name</th><th>Phone</th><th>Status</th><th>Action</th></tr>`;
 
     for(let i=1;i<data.length;i++){
-      html += `
+      html+=`
         <tr>
           <td>${data[i][1]}</td>
           <td>${data[i][2]}</td>
-          <td>${data[i][3]}</td>
           <td>${data[i][4]}</td>
           <td>
-            <button class="btn btn-warning"
-            onclick="showLoanForm('${data[i][0]}','${data[i][1]}')">Loan</button>
+            <button class="btn btn-success" onclick="showLoanModal('${data[i][0]}','${data[i][1]}')">Loan</button>
           </td>
         </tr>`;
     }
 
-    html += "</table></div>";
-    document.getElementById("content").innerHTML = html;
+    html+=`</table></div>`;
+    document.getElementById("content").innerHTML=html;
   }).getBorrowers();
+}
+
+function showAddBorrower(){
+  openModal(`
+    <h3>Add Borrower</h3>
+    <input id="bname" placeholder="Full Name">
+    <input id="bphone" placeholder="Phone">
+    <input id="baddress" placeholder="Address">
+    <button class="btn btn-success" onclick="saveBorrower()">Save</button>
+  `);
+}
+
+function saveBorrower(){
+  google.script.run.withSuccessHandler(()=>{
+    closeModal();
+    loadBorrowers();
+  }).addBorrower({
+    name:bname.value,
+    phone:bphone.value,
+    address:baddress.value
+  });
+}
+
+/* ================= LOAN ================= */
+
+function showLoanModal(id,name){
+  openModal(`
+    <h3>Release Loan - ${name}</h3>
+    <input id="principal" placeholder="Principal">
+    <input id="interest" placeholder="Interest %">
+    <input id="term" placeholder="Term (days)">
+    <input type="date" id="startDate">
+    <button class="btn btn-success" onclick="saveLoan('${id}','${name}')">Release</button>
+  `);
+}
+
+function saveLoan(id,name){
+  google.script.run.withSuccessHandler(()=>{
+    closeModal();
+    loadLoans();
+  }).addLoan({
+    borrowerId:id,
+    borrowerName:name,
+    principal:principal.value,
+    interest:interest.value,
+    term:term.value,
+    startDate:startDate.value
+  });
 }
 
 /* ================= LOANS ================= */
 
 function loadLoans(){
-  document.getElementById("pageTitle").innerText = "Loans";
-
   google.script.run.withSuccessHandler(function(data){
-    let html = `<div class="card"><table>
-      <tr>
-        <th>Borrower</th>
-        <th>Total</th>
-        <th>Balance</th>
-        <th>Due Date</th>
-        <th>Status</th>
-      </tr>`;
+    let html=`<div class="card"><table>
+      <tr><th>Borrower</th><th>Balance</th><th>Due</th><th>Status</th></tr>`;
 
-    const today = new Date();
+    const today=new Date();
 
     for(let i=1;i<data.length;i++){
-      const due = new Date(data[i][8]);
-      const overdue = due < today && data[i][9] == "Ongoing";
+      const due=new Date(data[i][8]);
+      const overdue=due<today && data[i][9]=="Ongoing";
 
-      html += `
-        <tr class="${overdue ? 'overdue' : ''}">
+      html+=`
+        <tr class="${overdue?'overdue':''}">
           <td>${data[i][2]}</td>
-          <td>₱ ${data[i][6]}</td>
           <td>₱ ${data[i][10]}</td>
           <td>${due.toLocaleDateString()}</td>
           <td>${data[i][9]}</td>
         </tr>`;
     }
 
-    html += "</table></div>";
-    document.getElementById("content").innerHTML = html;
+    html+=`</table></div>`;
+    document.getElementById("content").innerHTML=html;
   }).getLoans();
 }
 
-/* ================= PAYMENTS ================= */
+/* ================= MODAL ================= */
 
-function loadPayments(){
-  document.getElementById("pageTitle").innerText = "Payments";
-
-  google.script.run.withSuccessHandler(function(data){
-    let html = `<div class="card"><table>
-      <tr>
-        <th>Borrower</th>
-        <th>Loan ID</th>
-        <th>Amount</th>
-        <th>Date</th>
-      </tr>`;
-
-    for(let i=1;i<data.length;i++){
-      html += `
-        <tr>
-          <td>${data[i][3]}</td>
-          <td>${data[i][1]}</td>
-          <td>₱ ${data[i][4]}</td>
-          <td>${new Date(data[i][5]).toLocaleDateString()}</td>
-        </tr>`;
-    }
-
-    html += "</table></div>";
-    document.getElementById("content").innerHTML = html;
-  }).getSheetData("Payments");
+function openModal(content){
+  document.getElementById("modalContent").innerHTML=content;
+  document.getElementById("modal").style.display="flex";
 }
 
-/* LOAD DASHBOARD BY DEFAULT */
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+}
+
+window.onclick=function(e){
+  if(e.target==document.getElementById("modal")){
+    closeModal();
+  }
+};
+
 loadDashboard();
 
 </script>
